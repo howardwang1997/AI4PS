@@ -116,9 +116,9 @@ for task in mb.tasks:
         embeddings = torch.load(embeddings_path).cuda()
         atom_vocab = joblib.load('atom_vocab.jbl')
         cd = MoleculeDataset(root=name,
-                            atom_vocab=atom_vocab,
-                            inputs=train_inputs,
-                            outputs=train_outputs)
+                             atom_vocab=atom_vocab,
+                             inputs=train_inputs,
+                             outputs=train_outputs)
         module = nn.ModuleList([TransformerConvLayer(256, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
                  nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
         drop = 0.0 if not classification else 0.2
@@ -142,14 +142,11 @@ for task in mb.tasks:
 
         # predict
         test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
-        cd = CrystalDataset(root=name,
-                            atom_vocab=atom_vocab,
-                            inputs=test_inputs,
-                            outputs=test_outputs)
+        cd = MoleculeDataset(root=name,
+                             atom_vocab=atom_vocab,
+                             inputs=test_inputs,
+                             outputs=test_outputs)
         test_loader = DataLoader(cd, batch_size=2, shuffle=False, collate_fn=cd.collate_line_graph)
-        predictions = trainer.predict(test_loader=test_loader)
-
-        # record
-        task.record(fold, predictions)
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        predictions, metrics = trainer.predict(test_loader=test_loader)
+        loss = metrics[1]
+        trainer.save_state_dict(f'config/{name}_checkpoint.pt', loss)

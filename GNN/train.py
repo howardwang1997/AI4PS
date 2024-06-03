@@ -131,12 +131,14 @@ class Trainer():
             auc = roc_auc_score(targets, outputs>0)
             f1 = f1_score(targets, outputs>0)
             print('%s VALIDATION: ROC_AUC_SCORE= %.4f, F1_SCORE= %.4f' % (self.name, float(auc), float(f1)))
+            metrics = (auc, f1)
         else:
             mae = L1Loss()(outputs, targets)
             rmse = sqrt(MSELoss()(outputs, targets))
             print('%s VALIDATION: MAE_SCORE= %.4f, RMSE_SCORE= %.4f' % (self.name, float(mae), float(rmse)))
+            metrics = (mae, rmse)
 
-        return outputs
+        return outputs, metrics
 
     def verbose(self, epoch, i, total):
         print('Epoch: [{0}][{1}/{2}]\t'
@@ -158,7 +160,7 @@ class Trainer():
 
         # torch.save(self.model.state_dict(), path)
 
-    def save_state_dict(self, path=''):
+    def save_state_dict(self, path='', loss=0.):
         try:
             os.mkdir('results')
         except FileExistsError:
@@ -166,5 +168,6 @@ class Trainer():
 
         if path == '':
             path = 'results/%s.pt' % self.name
-        torch.save(self.model.state_dict(), path)
-
+        checkpoint = {'state_dict': self.model.cpu().state_dict(),
+                      'loss': loss}
+        torch.save(checkpoint, path)
