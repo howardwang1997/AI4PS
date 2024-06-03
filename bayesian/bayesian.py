@@ -1,14 +1,10 @@
-from enum import Enum
-import os
-
 import torch
 from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
 
-# Plotting imports and initialization
-from ax.utils.notebook.plotting import render
+from trainer import BayesianPredictor
 
 
 def _make_parameters(photosensitizers, solvents):
@@ -22,12 +18,24 @@ def _make_objectives():
     }
 
 
+def _get_photosensitizers(smiles=['']):
+    return smiles
+
+
+def _get_solvents(smiles=['']):
+    return smiles
+
+
 def evaluate(parameters, predictor):
     soqy, absorption = predictor.predict(parameters)[0].item(), predictor.predict(parameters)[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
     results = {"phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
     return results
+
+
+def plot_frontier(frontier):
+    pass
 
 
 def screen(components: dict,
@@ -57,23 +65,34 @@ def screen(components: dict,
         # Local evaluation here can be replaced with deployment to external system.
         ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters, predictor))
 
+    ax_objectives = ax_client.experiment.optimization_config.objective.objectives
+    frontier = compute_posterior_pareto_frontier(
+        experiment=ax_client.experiment,
+        data=ax_client.experiment.fetch_data(),
+        primary_objective=ax_objectives[1].metric,
+        secondary_objective=ax_objectives[0].metric,
+        absolute_metrics=['phi_singlet_oxygen', 'max_absorption'],
+        num_points=num_point,
+    )
+
     if plot:
-        ax_objectives = ax_client.experiment.optimization_config.objective.objectives
-        frontier = compute_posterior_pareto_frontier(
-            experiment=ax_client.experiment,
-            data=ax_client.experiment.fetch_data(),
-            primary_objective=ax_objectives[1].metric,
-            secondary_objective=ax_objectives[0].metric,
-            absolute_metrics=['phi_singlet_oxygen', 'max_absorption'],
-            num_points=num_point,
-        )
-        render(plot_pareto_frontier(frontier, CI_level=0.90))
+        plot_frontier(frontier)
 
     return ax_client.experiment
 
 
 def main():
-    pass
+    components = _make_parameters(_get_photosensitizers(), _get_solvents())
+    objectives = _make_objectives()
+    predictor = BayesianPredictor(checkpoint0='',
+                                  checkpoint1='',
+                                  device='cpu')
+    experiment = screen(components=components,
+                        objectives=objectives,
+                        predictor=predictor,
+                        iterations=50,
+                        plot=True)
+#     save
 
 
 if __name__ == '__main__':

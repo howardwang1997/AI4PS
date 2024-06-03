@@ -10,14 +10,13 @@ class BayesianPredictor:
     def __init__(self,
                  checkpoint0,
                  checkpoint1,
-                 batch_size=64,
                  device='gpu',
                  save_path='bayesian_sd.pt'):
         models = make_checkpoint(checkpoint0, checkpoint1)
-        self.model_soqy = models['model_soqy']
-        self.model_abs = models['model_abs']
-        self.loss_soqy = models['loss_soqy']
-        self.loss_abs = models['loss_abs']
+        self.model_soqy = models['model_0']
+        self.model_abs = models['model_1']
+        self.val_loss_soqy = models['loss_0']
+        self.val_loss_abs = models['loss_1']
 
         if device == 'gpu':
             self.device = torch.device("cuda:0")
@@ -29,7 +28,6 @@ class BayesianPredictor:
         self.model_soqy.eval()
         self.model_abs.eval()
 
-        self.batch_size = batch_size
         self.save_path = save_path
 
     def train(self, exp_data, epochs=100):
