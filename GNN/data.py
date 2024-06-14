@@ -173,6 +173,6 @@ def structure_from_pdb(pdb_block):
             s = tmp[10]
             coords.append(c)
             species.append(s)
-    lattice_mat = np.arrat([[100, 0, 0], [0, 100, 0], [0, 0, 100]])
+    lattice_mat = np.array([[100, 0, 0], [0, 100, 0], [0, 0, 100]])
     structure = Structure(lattice_mat, species, coords, coords_are_cartesian=True)
     return structure
