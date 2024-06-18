@@ -46,9 +46,6 @@ class Trainer():
         outputs = self.model(inputs)
         return outputs
 
-    def _calc_loss(self, outputs):
-        return self.criterion(outputs[0], outputs[1])
-
     def train(self, train_loader, optimizer, epochs,
               scheduler=None, verbose_freq: int=100, checkpoint_freq: int=20,
               grad_accum: int=1):

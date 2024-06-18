@@ -40,9 +40,10 @@ class CrysToGraphNet(nn.Module):
     """
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
-                embeddings=None, module=None, norm=False, drop=0.0):
+                embeddings=None, module=None, norm=False, drop=0.0, embed_output=False):
         super(CrysToGraphNet, self).__init__()
         self.embeddings = embeddings
+        self.embed_output = embed_output
         self.embedded = True
         if self.embeddings is None:
             self.embeddings = nn.Linear(orig_atom_fea_len, atom_fea_len)
@@ -124,21 +125,25 @@ class CrysToGraphNet(nn.Module):
             atom_fea = self.conv_sp(self.do_gt(self.gts[idx], atom_fea, crystal_atom_idx, nbr_fea_idx, nbr_fea))
 
         crys_fea = tgnn.pool.global_mean_pool(atom_fea, crystal_atom_idx.cuda())
-        crys_fea = self.conv_to_fc_softplus(crys_fea)
-        crys_fea = self.conv_to_fc(crys_fea)
-        if hasattr(self, 'bn'): crys_fea = self.ln_fc(crys_fea)
+        mol_embeddings = crys_fea
+        if self.embed_output:
+            return mol_embeddings
+        else:
+            crys_fea = self.conv_to_fc_softplus(crys_fea)
+            crys_fea = self.conv_to_fc(crys_fea)
+            if hasattr(self, 'bn'): crys_fea = self.ln_fc(crys_fea)
 
-        for fc, sp in zip(self.fcs, self.softpluses):
-            crys_fea = sp(crys_fea)
-            crys_fea = fc(crys_fea)
+            for fc, sp in zip(self.fcs, self.softpluses):
+                crys_fea = sp(crys_fea)
+                crys_fea = fc(crys_fea)
 
-        crys_fea = self.fin_sp(crys_fea)
+            crys_fea = self.fin_sp(crys_fea)
 
-        crys_fea = self.drop(crys_fea)
-        out_h = self.fc_out(crys_fea)
-        out = out_h
-                
-        return out
+            crys_fea = self.drop(crys_fea)
+            out_h = self.fc_out(crys_fea)
+            out = out_h
+
+            return out
 
     def do_mp(self, conv_n, conv_l, atom_fea, nbr_fea_idx, nbr_fea, line_fea_idx, line_fea, idx):
         nbr_fea, line_fea = conv_l(nbr_fea, line_fea_idx, line_fea)
@@ -147,4 +152,28 @@ class CrysToGraphNet(nn.Module):
 
     def do_gt(self, gt_layer, atom_fea, crystal_atom_idx, nbr_fea_idx, nbr_fea):
         return gt_layer(atom_fea, crystal_atom_idx, nbr_fea_idx, nbr_fea)
-    
+
+
+class SolutionNet(nn.Module):
+    def __init__(self, orig_atom_fea_len, nbr_fea_len,
+                atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
+                embeddings=None, module=None, norm=False, drop=0.0):
+        super().__init__()
+        self.ctgn_a = CrysToGraphNet(orig_atom_fea_len, nbr_fea_len, atom_fea_len, line_fea_len, n_conv, h_fea_len,
+                                     n_fc, n_gt, embeddings, module, norm, drop, True)
+        self.ctgn_b = CrysToGraphNet(orig_atom_fea_len, nbr_fea_len, atom_fea_len, line_fea_len, n_conv, h_fea_len,
+                                     n_fc, n_gt, embeddings, module, norm, drop, True)
+
+        self.fc1 = nn.Linear(2*h_fea_len, h_fea_len)
+        self.fc2 = nn.Linear(h_fea_len, 1)
+        self.actv = nn.Softplus()
+
+    def forward(self, data):
+        g, lg, g_s, lg_s, = data[0], data[1], data[2], data[3]
+        mol_rep = self.ctgn_a(g, lg)
+        sol_rep = self.ctgn_a(g_s, lg_s)
+        all_rep = torch.cat([mol_rep, sol_rep], dim=-1)
+
+        out = self.fc1(all_rep)
+        out = self.fc2(self.actv(out))
+        return out

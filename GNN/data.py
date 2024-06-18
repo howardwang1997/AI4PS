@@ -17,7 +17,7 @@ from graph_utils import compute_bond_cosines, convert_spherical
 
 class MoleculeDataset(torch.utils.data.Dataset):
     def __init__(self, atom_vocab, inputs, outputs, root='molecule_dataset', embedded=False):
-        
+
         if root[-1] != '/':
             root = '%s/' % root
         self.root = root
@@ -32,17 +32,17 @@ class MoleculeDataset(torch.utils.data.Dataset):
         self.atom_vocab = atom_vocab
         self.embedded = embedded
         self.prepare_batch = prepare_line_graph_batch
-        
+
         super().__init__()
 
     def process(self, name, mol, label):
         g, lg = mol2dglgraph(mol, self.atom_vocab)
         joblib.dump((g, lg, label), '%s/%s.jbl' % (self.root, name))
         return g, lg, label
-    
+
     def __len__(self):
         return self.length
-    
+
     # @functools.lru_cache(maxsize=None)
     def __getitem__(self, idx):
         mol = self.inputs[idx]
@@ -66,17 +66,59 @@ class MoleculeDataset(torch.utils.data.Dataset):
         graphs, labels = map(list, zip(*samples))
         batched_graph = dgl.batch(graphs)
 
-        return batched_graph, torch.tensor(labels).view(-1,1)
+        return batched_graph, torch.tensor(labels).view(-1, 1)
 
     @staticmethod
     def collate_line_graph(
-        samples: List[Tuple[dgl.DGLGraph, dgl.DGLGraph, torch.Tensor]]
+            samples: List[Tuple[dgl.DGLGraph, dgl.DGLGraph, torch.Tensor]]
     ):
         """Dataloader helper to batch graphs cross `samples`."""
         graphs, line_graphs, labels = map(list, zip(*samples))
         batched_graph = dgl.batch(graphs)
         batched_line_graph = dgl.batch(line_graphs)
-        return batched_graph, batched_line_graph, torch.tensor(labels).view(-1,1)
+        return batched_graph, batched_line_graph, torch.tensor(labels).view(-1, 1)
+
+
+class MoleculesDataset(MoleculeDataset):
+    def __init__(self, atom_vocab, inputs, solvents, outputs, root='molecule_dataset', embedded=False):
+        super().__init__(atom_vocab, inputs, outputs, root, embedded)
+        self.solvents = solvents
+
+    def process(self, name, mol, label):
+        mol, sol = mol
+        g, lg = mol2dglgraph(mol, self.atom_vocab)
+        gs, lgs = mol2dglgraph(sol, self.atom_vocab)
+        joblib.dump((g, lg, gs, lgs, label), '%s/%s.jbl' % (self.root, name))
+        return g, lg, gs, lgs, label
+
+    def __getitem__(self, idx):
+        mol = self.inputs[idx]
+        label = self.outputs[idx]
+        name = self.outputs.index[idx]
+        sol = self.solvents[idx]
+
+        try:
+            item = self.dict_graph[name]
+        except KeyError:
+            try:
+                item = joblib.load('%s/%s.jbl' % (self.root, name))
+            except FileNotFoundError:
+                item = self.process(name, (mol, sol), label)
+            self.dict_graph[name] = item
+
+        return item
+
+    @staticmethod
+    def collate_line_graph(
+            samples: List[Tuple[dgl.DGLGraph, dgl.DGLGraph, dgl.DGLGraph, dgl.DGLGraph, torch.Tensor]]
+    ):
+        """Dataloader helper to batch graphs cross `samples`."""
+        graphs, line_graphs, g_sol, lg_sol, labels = map(list, zip(*samples))
+        batched_graph = dgl.batch(graphs)
+        batched_line_graph = dgl.batch(line_graphs)
+        batched_g_sol = dgl.batch(graphs)
+        batched_lg_sol = dgl.batch(line_graphs)
+        return batched_graph, batched_line_graph, batched_g_sol, batched_lg_sol, torch.tensor(labels).view(-1, 1)
 
 
 def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=60, max_radius=8):
@@ -108,14 +150,6 @@ def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False
     nbr_starts, nbr_ends = [], []
     cart_starts, cart_ends = [], []
     count = 0
-
-    # increment = 0
-    # while min([len(nbr) for nbr in all_nbrs]) < max_nbr:
-    #     radius += 2
-    #     all_nbrs = structure.get_all_neighbors(radius)
-    #
-    #     increment += 1
-    #     print('INCREMENT %d in raius, radius is %d' % (increment, radius))
     
     all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
 
