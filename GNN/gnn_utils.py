@@ -1,8 +1,9 @@
 import random
 
 
-def split(dataset: list, val_ratio=0.1):
+def split(dataset: list, val_ratio=0.1, seed=42):
     l = len(dataset)
+    random.seed(seed)
     boarder = int(l * val_ratio)
     shuffled = list(range(l))
     random.shuffle(shuffled)

@@ -170,8 +170,8 @@ class SolutionNet(nn.Module):
 
     def forward(self, data):
         g, lg, g_s, lg_s, = data[0], data[1], data[2], data[3]
-        mol_rep = self.ctgn_a(g, lg)
-        sol_rep = self.ctgn_a(g_s, lg_s)
+        mol_rep = self.ctgn_a((g, lg))
+        sol_rep = self.ctgn_a((g_s, lg_s))
         all_rep = torch.cat([mol_rep, sol_rep], dim=-1)
 
         out = self.fc1(all_rep)

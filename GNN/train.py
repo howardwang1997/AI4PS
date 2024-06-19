@@ -71,7 +71,8 @@ class Trainer():
                 self.data_time.update(time.time() - end)
                 end = time.time()
 
-                output = self.model((data[0].to(torch.device('cuda:0')), data[1].to(torch.device('cuda:0'))))
+                data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
+                output = self.model(data_batch)
                 target = data[-1]
 
                 target = Variable(target.float())
