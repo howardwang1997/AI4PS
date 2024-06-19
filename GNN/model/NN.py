@@ -50,7 +50,7 @@ class CrysToGraphNet(nn.Module):
             self.embedded = False
         else:
             atom_fea_len = orig_atom_fea_len
-            
+
         self.gf = [GaussianFilter(0, 8, 0.2),
                    GaussianFilter(0, 3.2, 0.2),
                    GaussianFilter(-3.2, 3.2, 0.4),
@@ -71,15 +71,15 @@ class CrysToGraphNet(nn.Module):
             else:
                 self.convs = module
 
-        self.pe_to_hidden = nn.Linear(40, 256)
+        self.pe_to_hidden = nn.Linear(40, h_fea_len)
 
         self.gts = nn.Sequential(*[GlobalTransformerLayer(h_fea_len, 32, 8, edge_dim=nbr_fea_len)
                                    for _ in range(n_gt)])
         self.conv_sp = nn.Softplus()
-            
+
         self.conv_to_fc = nn.Linear(h_fea_len, h_fea_len)
         self.conv_to_fc_softplus = nn.Softplus()
-        
+
         self.fcs = nn.ModuleList([nn.Linear(in_features=h_fea_len,
                                             out_features=h_fea_len,
                                             bias=True)
@@ -94,7 +94,7 @@ class CrysToGraphNet(nn.Module):
             self.bn = nn.BatchNorm1d(h_fea_len)
             self.bne = nn.BatchNorm1d(nbr_fea_len)
         self.drop = nn.Dropout(drop)
-        
+
     def forward(self, data):
         atom_fea = data[0].ndata['atom_features']
         nbr_fea = data[0].edata['spherical']
