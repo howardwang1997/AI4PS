@@ -65,13 +65,17 @@ class CrysToGraphNet(nn.Module):
                                                    dim=nbr_fea_len,
                                                    batch_norm=True)
                                        for _ in range(n_conv)]) # need modifying with more types of conv layers
+            self.line_convs = nn.ModuleList([tgnn.CGConv(channels=h_fea_len,
+                                             dim=nbr_fea_len,
+                                             batch_norm=True)
+                                 for _ in range(n_conv)]) # need modifying with more types of conv layers
         else:
             if isinstance(module, tuple):
                 self.convs, self.line_convs = module
             else:
                 self.convs = module
 
-        self.pe_to_hidden = nn.Linear(40, 256)
+        self.pe_to_hidden = nn.Linear(40, h_fea_len)
 
         self.gts = nn.Sequential(*[GlobalTransformerLayer(h_fea_len, 32, 8, edge_dim=nbr_fea_len)
                                    for _ in range(n_gt)])
@@ -109,9 +113,9 @@ class CrysToGraphNet(nn.Module):
         pe = self.pe_to_hidden(data[0].ndata['pe'])
 
         line_fea = data[1].edata['h']
-        line_fea = self.gf[-1].expand(line_fea).float()
+        # line_fea = self.gf[-1].expand(line_fea).float()
         line_fea_idx = torch.vstack(data[1].edges())
-        line_fea = self.line_to_line(line_fea)
+        # line_fea = self.line_to_line(line_fea)
 
         for idx in range(len(self.convs)):
             atom_fea, nbr_fea = self.do_mp(self.convs[idx], self.line_convs[idx],
@@ -146,7 +150,7 @@ class CrysToGraphNet(nn.Module):
             return out
 
     def do_mp(self, conv_n, conv_l, atom_fea, nbr_fea_idx, nbr_fea, line_fea_idx, line_fea, idx):
-        nbr_fea, line_fea = conv_l(nbr_fea, line_fea_idx, line_fea)
+        # nbr_fea, line_fea = conv_l(nbr_fea, line_fea_idx, line_fea)
         atom_fea, nbr_fea = conv_n(atom_fea, nbr_fea_idx, nbr_fea)
         return atom_fea, nbr_fea
 
@@ -170,8 +174,8 @@ class SolutionNet(nn.Module):
 
     def forward(self, data):
         g, lg, g_s, lg_s, = data[0], data[1], data[2], data[3]
-        mol_rep = self.ctgn_a(g, lg)
-        sol_rep = self.ctgn_a(g_s, lg_s)
+        mol_rep = self.ctgn_a((g, lg))
+        sol_rep = self.ctgn_b((g_s, lg_s))
         all_rep = torch.cat([mol_rep, sol_rep], dim=-1)
 
         out = self.fc1(all_rep)

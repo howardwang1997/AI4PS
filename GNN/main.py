@@ -1,12 +1,14 @@
 import os
+import json
 import joblib
 import argparse
 
+from rdkit import Chem
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 
-from matbench.bench import MatbenchBenchmark
+# from matbench.bench import MatbenchBenchmark
 
 from data import MoleculeDataset, MoleculesDataset
 from train import Trainer
@@ -18,16 +20,31 @@ from gnn_utils import dataset_converter, split
 with open('../data/dataset_close_1.json') as f:
     d = json.load(f)
 data = d['soqy']
+all_data = []
+for d in data:
+    try:
+        mol = Chem.MolFromSmiles(d[0])
+        sol = Chem.MolFromSmiles(d[1])
+        if mol and sol:
+            if '*' in d[0]:
+                continue
+            else:
+                all_data.append(d)
+    except TypeError:
+        print(d[0])
+        print(d[1])
+print(len(data), len(all_data))
+data = all_data
 
-mb = MatbenchBenchmark(autoload=False)
-mb = mb.from_preset('matbench_v0.1', 'structure')
+# mb = MatbenchBenchmark(autoload=False)
+# mb = mb.from_preset('matbench_v0.1', 'structure')
 
 parser = argparse.ArgumentParser(description='Run CrysToGraph on matbench.')
 parser.add_argument('--task', type=str, default='')
 parser.add_argument('--checkpoint', type=str, default='')
 parser.add_argument('--atom_fea_len', type=int, default=92)
 parser.add_argument('--nbr_fea_len', type=int, default=42)
-parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--n_conv', type=int, default=3)
 parser.add_argument('--n_fc', type=int, default=2)
 parser.add_argument('--n_gt', type=int, default=0)
@@ -74,6 +91,8 @@ if args.checkpoint0 != '' and args.checkpoint1 != '' and args.checkpoint2 != '' 
     pretrained = separated_checkpoint = True
 
 embeddings_path = ''
+embeddings_path = '/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/embeddings_100_cgcnn.pt'
+atom_vocab = joblib.load('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
 
 # mkdir
 try:
@@ -104,6 +123,8 @@ if epochs == -1:
     else:
         epochs = 500
         grad_accum = 8
+grad_accum = 2
+epochs = 2000
 
 milestone2 = 99999
 if args.milestone1 > 0:
@@ -111,23 +132,24 @@ if args.milestone1 > 0:
     if args.milestone2 > milestone1:
         milestone2 = args.milestone2
 else:
-    milestone1 = int(epochs/3)
+    milestone1 = int(epochs*2/3)
 
 milestones = [milestone1, milestone2]
 
 # define atom_vocab, dataset, model, trainer
 embeddings = torch.load(embeddings_path).cuda()
 atom_vocab = joblib.load('atom_vocab.jbl')
-cd = MoleculesDataset(root=name,
+cd = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
                      atom_vocab=atom_vocab,
                      inputs=train_inputs,
                      solvents=train_sols,
                      outputs=train_outs)
-module = nn.ModuleList([TransformerConvLayer(256, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
+module = nn.ModuleList([TransformerConvLayer(128, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
          nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
+# module = None
 drop = 0.0 if not classification else 0.2
 ctgn = SolutionNet(atom_fea_len, nbr_fea_len,
-                   embeddings=embeddings, h_fea_len=256, n_conv=args.n_conv,
+                   embeddings=embeddings, h_fea_len=128, n_conv=args.n_conv,
                    n_fc=args.n_fc, n_gt=args.n_gt, module=module, norm=True, drop=drop)
 
 # if pretrained:
@@ -136,23 +158,27 @@ optimizer = optim.AdamW(ctgn.parameters(), lr=lr, betas=(0.9, 0.99), weight_deca
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones, gamma=0.1)
 trainer = Trainer(ctgn, name='%s_%d_%s' % (name, fold, args.remarks), classification=classification)
 
+# predict
+# test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
+test_inputs, test_sols, test_outs = dataset_converter(val_set)
+td = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
+                     atom_vocab=atom_vocab,
+                     inputs=test_inputs,
+                     solvents=test_sols,
+                     outputs=test_outs)
+test_loader = DataLoader(td, batch_size=2, shuffle=False, collate_fn=cd.collate_line_graph)
+
 # train
 train_loader = DataLoader(cd, batch_size=batch_size, shuffle=True, collate_fn=cd.collate_line_graph)
 trainer.train(train_loader=train_loader,
               optimizer=optimizer,
               epochs=epochs,
               scheduler=scheduler,
-              grad_accum=grad_accum)
+              grad_accum=grad_accum,
+              val_freq=10,
+              test_loader=test_loader)
 
 # predict
-# test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
-test_inputs, test_sols, test_outs = dataset_converter(val_set)
-cd = MoleculesDataset(root=name,
-                     atom_vocab=atom_vocab,
-                     inputs=test_inputs,
-                     solvents=test_sols,
-                     outputs=test_outs)
-test_loader = DataLoader(cd, batch_size=2, shuffle=False, collate_fn=cd.collate_line_graph)
 predictions, metrics = trainer.predict(test_loader=test_loader)
 loss = metrics[1]
-trainer.save_state_dict(f'config/{name}_checkpoint.pt', loss)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_checkpoint.pt', loss)

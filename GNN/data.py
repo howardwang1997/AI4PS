@@ -88,20 +88,20 @@ class MoleculesDataset(MoleculeDataset):
         mol, sol = mol
         g, lg = mol2dglgraph(mol, self.atom_vocab)
         gs, lgs = mol2dglgraph(sol, self.atom_vocab)
-        joblib.dump((g, lg, gs, lgs, label), '%s/%s.jbl' % (self.root, name))
+        joblib.dump((g, lg, gs, lgs, label), '%s%s.jbl' % (self.root, name))
         return g, lg, gs, lgs, label
 
     def __getitem__(self, idx):
         mol = self.inputs[idx]
         label = self.outputs[idx]
-        name = self.outputs.index[idx]
         sol = self.solvents[idx]
+        name = hash(f'{mol}_{sol}')
 
         try:
             item = self.dict_graph[name]
         except KeyError:
             try:
-                item = joblib.load('%s/%s.jbl' % (self.root, name))
+                item = joblib.load('%s%s.jbl' % (self.root, name))
             except FileNotFoundError:
                 item = self.process(name, (mol, sol), label)
             self.dict_graph[name] = item
@@ -116,12 +116,12 @@ class MoleculesDataset(MoleculeDataset):
         graphs, line_graphs, g_sol, lg_sol, labels = map(list, zip(*samples))
         batched_graph = dgl.batch(graphs)
         batched_line_graph = dgl.batch(line_graphs)
-        batched_g_sol = dgl.batch(graphs)
-        batched_lg_sol = dgl.batch(line_graphs)
+        batched_g_sol = dgl.batch(g_sol)
+        batched_lg_sol = dgl.batch(lg_sol)
         return batched_graph, batched_line_graph, batched_g_sol, batched_lg_sol, torch.tensor(labels).view(-1, 1)
 
 
-def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=60, max_radius=8):
+def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=12, max_radius=8):
     """
     dgl graph object
     """
@@ -205,8 +205,10 @@ def structure_from_pdb(pdb_block):
             tmp = l.split()
             c = [float(tmp[5]), float(tmp[6]), float(tmp[7])]
             s = tmp[10]
+            if len(s) > 1:
+                s = s[0] + s[1:].lower()
             coords.append(c)
             species.append(s)
-    lattice_mat = np.array([[100, 0, 0], [0, 100, 0], [0, 0, 100]])
+    lattice_mat = np.array([[50, 0, 0], [0, 50, 0], [0, 0, 50]])
     structure = Structure(lattice_mat, species, coords, coords_are_cartesian=True)
     return structure

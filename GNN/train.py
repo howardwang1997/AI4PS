@@ -48,8 +48,12 @@ class Trainer():
 
     def train(self, train_loader, optimizer, epochs,
               scheduler=None, verbose_freq: int=100, checkpoint_freq: int=20,
-              grad_accum: int=1):
-        self.model.train()
+              grad_accum: int=1, val_freq=0, test_loader=None):
+        val = False
+        self.val_loss_list = []
+        if val_freq > 0 and test_loader:
+            val = True
+
         lrs = True
         if scheduler is None:
             lrs = False
@@ -62,6 +66,7 @@ class Trainer():
         end = time.time()
         self.loss_list = []
         for epoch in range(epochs):
+            self.model.train()
             loss_list = []
             self.losses.reset()
             self.data_time.reset()
@@ -71,7 +76,8 @@ class Trainer():
                 self.data_time.update(time.time() - end)
                 end = time.time()
 
-                output = self.model((data[0].to(torch.device('cuda:0')), data[1].to(torch.device('cuda:0'))))
+                data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
+                output = self.model(data_batch)
                 target = data[-1]
 
                 target = Variable(target.float())
@@ -99,9 +105,16 @@ class Trainer():
             if lrs:
                 scheduler.step()
             self.loss_list.append(loss_list)
+
+            if val:
+                if epoch % val_freq == 0:
+                    outputs, metrics = self.predict(test_loader)
+                    self.val_loss_list.append(float(metrics[0]))
+
             if epoch % checkpoint_freq == 0:
                 self.save_checkpoints(epoch)
         self.save_state_dict()
+        self.model.cuda()
 
     def predict(self, test_loader):
         self.model.eval()
@@ -115,7 +128,8 @@ class Trainer():
                 self.data_time.update(time.time() - end)
                 end = time.time()
 
-                output = self.model((data[0].to(torch.device('cuda:0')), data[1].to(torch.device('cuda:0')))).cpu()
+                data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
+                output = self.model(data_batch).cpu()
                 target = data[-1]
 
                 self.batch_time.update(time.time() - end)
@@ -165,6 +179,9 @@ class Trainer():
 
         if path == '':
             path = 'results/%s.pt' % self.name
+        if len(self.val_loss_list) > 0:
+            loss = self.val_loss_list[-1]
         checkpoint = {'state_dict': self.model.cpu().state_dict(),
-                      'loss': loss}
+                      'loss': loss,
+                      'val_loss_list': self.val_loss_list}
         torch.save(checkpoint, path)

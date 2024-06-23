@@ -224,4 +224,4 @@ def convert_spherical(euclidean):
         out = torch.vstack([r, theta, phi])
         out = out.T.to(device)
 
-    return out
+    return torch.as_tensor(out, dtype=torch.float32)
