@@ -107,12 +107,14 @@ class Trainer():
             self.loss_list.append(loss_list)
 
             if val:
-                outputs, metrics = self.predict(test_loader)
-                self.val_loss_list.append(float(metrics[0]))
+                if epoch % val_freq == 0:
+                    outputs, metrics = self.predict(test_loader)
+                    self.val_loss_list.append(float(metrics[0]))
 
             if epoch % checkpoint_freq == 0:
                 self.save_checkpoints(epoch)
         self.save_state_dict()
+        self.model.cuda()
 
     def predict(self, test_loader):
         self.model.eval()
@@ -169,7 +171,7 @@ class Trainer():
 
         # torch.save(self.model.state_dict(), path)
 
-    def save_state_dict(self, path='', loss=0.):
+    def save_state_dict(self, path='', loss=0., targets={}):
         try:
             os.mkdir('results')
         except FileExistsError:
@@ -181,5 +183,6 @@ class Trainer():
             loss = self.val_loss_list[-1]
         checkpoint = {'state_dict': self.model.cpu().state_dict(),
                       'loss': loss,
-                      'val_loss_list': self.val_loss_list}
+                      'val_loss_list': self.val_loss_list,
+                      'targets': targets}
         torch.save(checkpoint, path)

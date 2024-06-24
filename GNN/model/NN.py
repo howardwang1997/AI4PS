@@ -2,15 +2,10 @@
 import torch
 from torch import nn
 from torch_geometric import nn as tgnn
-from torch import Tensor
-from torch_geometric.typing import OptTensor
-
-import dgl
-from dgl import nn as dglnn
-import dgl.function as fn
 from .model_utils import dgl_get_tg_batch_tensor
 
 from .transformer import GlobalTransformerLayer
+
 
 class GaussianFilter(object):
     """
@@ -19,10 +14,11 @@ class GaussianFilter(object):
     from crystal
     from CGCNN
     """
+
     def __init__(self, dmin=0, dmax=6, step=0.2, var=None, cuda=True):
         assert dmin < dmax
         assert dmax - dmin > step
-        self.filter = torch.arange(dmin, dmax+step, step)
+        self.filter = torch.arange(dmin, dmax + step, step)
         if cuda and torch.cuda.is_available():
             self.filter = self.filter.cuda()
         if var is None:
@@ -30,17 +26,18 @@ class GaussianFilter(object):
         self.var = var
 
     def expand(self, distances):
-        return torch.exp(-(distances.unsqueeze(-1) - self.filter)**2 /
-                      self.var**2)
+        return torch.exp(-(distances.unsqueeze(-1) - self.filter) ** 2 /
+                         self.var ** 2)
 
 
 class CrysToGraphNet(nn.Module):
     """
     Contrastive pre-training of convolutions.
     """
+
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
-                atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
-                embeddings=None, module=None, norm=False, drop=0.0, embed_output=False):
+                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
+                 embeddings=None, module=None, norm=False, drop=0.0, embed_output=False):
         super(CrysToGraphNet, self).__init__()
         self.embeddings = embeddings
         self.embed_output = embed_output
@@ -62,9 +59,13 @@ class CrysToGraphNet(nn.Module):
 
         if module is None:
             self.convs = nn.ModuleList([tgnn.CGConv(channels=h_fea_len,
-                                                   dim=nbr_fea_len,
-                                                   batch_norm=True)
-                                       for _ in range(n_conv)]) # need modifying with more types of conv layers
+                                                    dim=nbr_fea_len,
+                                                    batch_norm=True)
+                                        for _ in range(n_conv)])  # need modifying with more types of conv layers
+            self.line_convs = nn.ModuleList([tgnn.CGConv(channels=h_fea_len,
+                                                         dim=nbr_fea_len,
+                                                         batch_norm=True)
+                                             for _ in range(n_conv)])  # need modifying with more types of conv layers
         else:
             if isinstance(module, tuple):
                 self.convs, self.line_convs = module
@@ -83,9 +84,9 @@ class CrysToGraphNet(nn.Module):
         self.fcs = nn.ModuleList([nn.Linear(in_features=h_fea_len,
                                             out_features=h_fea_len,
                                             bias=True)
-                                  for _ in range(n_fc-1)])
+                                  for _ in range(n_fc - 1)])
         self.softpluses = nn.ModuleList([nn.Softplus()
-            for _ in range(n_fc-1)])
+                                         for _ in range(n_fc - 1)])
         self.fc_out = nn.Linear(h_fea_len, 1, bias=True)
         self.fin_sp = nn.Softplus()
 
@@ -98,7 +99,8 @@ class CrysToGraphNet(nn.Module):
     def forward(self, data):
         atom_fea = data[0].ndata['atom_features']
         nbr_fea = data[0].edata['spherical']
-        nbr_fea = torch.hstack([self.gf[i].expand(nbr_fea[:,i]) for i in range(1)] + [(data[0].edata['spherical'][:,0] > 2).view(-1,1)]).float()
+        nbr_fea = torch.hstack([self.gf[i].expand(nbr_fea[:, i]) for i in range(1)] + [
+            (data[0].edata['spherical'][:, 0] > 2).view(-1, 1)]).float()
         nbr_fea_idx = torch.vstack(data[0].edges())
         crystal_atom_idx = dgl_get_tg_batch_tensor(data[0]).long()
 
@@ -109,9 +111,9 @@ class CrysToGraphNet(nn.Module):
         pe = self.pe_to_hidden(data[0].ndata['pe'])
 
         line_fea = data[1].edata['h']
-        line_fea = self.gf[-1].expand(line_fea).float()
+        # line_fea = self.gf[-1].expand(line_fea).float()
         line_fea_idx = torch.vstack(data[1].edges())
-        line_fea = self.line_to_line(line_fea)
+        # line_fea = self.line_to_line(line_fea)
 
         for idx in range(len(self.convs)):
             atom_fea, nbr_fea = self.do_mp(self.convs[idx], self.line_convs[idx],
@@ -146,7 +148,7 @@ class CrysToGraphNet(nn.Module):
             return out
 
     def do_mp(self, conv_n, conv_l, atom_fea, nbr_fea_idx, nbr_fea, line_fea_idx, line_fea, idx):
-        nbr_fea, line_fea = conv_l(nbr_fea, line_fea_idx, line_fea)
+        # nbr_fea, line_fea = conv_l(nbr_fea, line_fea_idx, line_fea)
         atom_fea, nbr_fea = conv_n(atom_fea, nbr_fea_idx, nbr_fea)
         return atom_fea, nbr_fea
 
@@ -156,22 +158,22 @@ class CrysToGraphNet(nn.Module):
 
 class SolutionNet(nn.Module):
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
-                atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
-                embeddings=None, module=None, norm=False, drop=0.0):
+                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
+                 embeddings=None, module=None, norm=False, drop=0.0):
         super().__init__()
         self.ctgn_a = CrysToGraphNet(orig_atom_fea_len, nbr_fea_len, atom_fea_len, line_fea_len, n_conv, h_fea_len,
                                      n_fc, n_gt, embeddings, module, norm, drop, True)
         self.ctgn_b = CrysToGraphNet(orig_atom_fea_len, nbr_fea_len, atom_fea_len, line_fea_len, n_conv, h_fea_len,
                                      n_fc, n_gt, embeddings, module, norm, drop, True)
 
-        self.fc1 = nn.Linear(2*h_fea_len, h_fea_len)
+        self.fc1 = nn.Linear(2 * h_fea_len, h_fea_len)
         self.fc2 = nn.Linear(h_fea_len, 1)
         self.actv = nn.Softplus()
 
     def forward(self, data):
         g, lg, g_s, lg_s, = data[0], data[1], data[2], data[3]
         mol_rep = self.ctgn_a((g, lg))
-        sol_rep = self.ctgn_a((g_s, lg_s))
+        sol_rep = self.ctgn_b((g_s, lg_s))
         all_rep = torch.cat([mol_rep, sol_rep], dim=-1)
 
         out = self.fc1(all_rep)

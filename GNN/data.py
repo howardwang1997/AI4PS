@@ -121,7 +121,7 @@ class MoleculesDataset(MoleculeDataset):
         return batched_graph, batched_line_graph, batched_g_sol, batched_lg_sol, torch.tensor(labels).view(-1, 1)
 
 
-def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=60, max_radius=8):
+def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=12, max_radius=8):
     """
     dgl graph object
     """
