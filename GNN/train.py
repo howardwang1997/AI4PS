@@ -171,7 +171,7 @@ class Trainer():
 
         # torch.save(self.model.state_dict(), path)
 
-    def save_state_dict(self, path='', loss=0.):
+    def save_state_dict(self, path='', loss=0., targets={}):
         try:
             os.mkdir('results')
         except FileExistsError:
@@ -183,5 +183,6 @@ class Trainer():
             loss = self.val_loss_list[-1]
         checkpoint = {'state_dict': self.model.cpu().state_dict(),
                       'loss': loss,
-                      'val_loss_list': self.val_loss_list}
+                      'val_loss_list': self.val_loss_list,
+                      'targets': targets}
         torch.save(checkpoint, path)

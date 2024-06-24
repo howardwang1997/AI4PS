@@ -181,4 +181,8 @@ trainer.train(train_loader=train_loader,
 # predict
 predictions, metrics = trainer.predict(test_loader=test_loader)
 loss = metrics[1]
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_checkpoint.pt', loss)
+targets_p_t = {
+    'predictions': torch.tensor(predictions).cpu(),
+    'targets': torch.tensor(test_outs).cpu()
+}
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_checkpoint.pt', loss, targets_p_t)
