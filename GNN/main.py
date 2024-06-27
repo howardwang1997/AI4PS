@@ -100,15 +100,6 @@ try:
 except FileExistsError:
     pass
 
-# for fold in task.folds:
-#     if args.fold != -1 and fold != args.fold:
-#         continue
-#     if pretrained:
-#         if separated_checkpoint:
-#             checkpoint = map_checkpoint[fold]
-#         else:
-#             checkpoint = args.checkpoint
-#     train_inputs, train_outputs = task.get_train_and_val_data(fold)
 
 train_inputs, train_sols, train_outs = dataset_converter(train_set)
 
