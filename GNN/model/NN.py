@@ -36,7 +36,7 @@ class CrysToGraphNet(nn.Module):
     """
 
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
-                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
+                 atom_fea_len=64, line_fea_len=1, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
                  embeddings=None, module=None, norm=False, drop=0.0, embed_output=False):
         super(CrysToGraphNet, self).__init__()
         self.embeddings = embeddings
@@ -47,11 +47,13 @@ class CrysToGraphNet(nn.Module):
             self.embedded = False
         else:
             atom_fea_len = orig_atom_fea_len
+        
+        atom_fea_len = orig_atom_fea_len
 
-        self.gf = [GaussianFilter(0, 8, 0.2),
-                   GaussianFilter(0, 3.2, 0.2),
-                   GaussianFilter(-3.2, 3.2, 0.4),
-                   GaussianFilter(-1.4, 1.5, 0.1)]
+        # self.gf = [GaussianFilter(0, 8, 0.2),
+        #            GaussianFilter(0, 3.2, 0.2),
+        #            GaussianFilter(-3.2, 3.2, 0.4),
+        #            GaussianFilter(-1.4, 1.5, 0.1)]
 
         self.embeddings_to_hidden = nn.Linear(atom_fea_len, h_fea_len)
         self.edge_to_nbr = nn.Linear(nbr_fea_len, nbr_fea_len)
@@ -71,8 +73,9 @@ class CrysToGraphNet(nn.Module):
                 self.convs, self.line_convs = module
             else:
                 self.convs = module
+        self.line_convs = torch.tensor([0] * len(self.convs))
 
-        self.pe_to_hidden = nn.Linear(40, h_fea_len)
+        self.pe_to_hidden = nn.Linear(20, h_fea_len)
 
         self.gts = nn.Sequential(*[GlobalTransformerLayer(h_fea_len, 32, 8, edge_dim=nbr_fea_len)
                                    for _ in range(n_gt)])
@@ -99,20 +102,22 @@ class CrysToGraphNet(nn.Module):
     def forward(self, data):
         atom_fea = data[0].ndata['atom_features']
         nbr_fea = data[0].edata['spherical']
-        nbr_fea = torch.hstack([self.gf[i].expand(nbr_fea[:, i]) for i in range(1)] + [
-            (data[0].edata['spherical'][:, 0] > 2).view(-1, 1)]).float()
+        # nbr_fea = torch.hstack([self.gf[i].expand(nbr_fea[:, i]) for i in range(1)] + [
+        #     (data[0].edata['spherical'][:, 0] > 2).view(-1, 1)]).float()
         nbr_fea_idx = torch.vstack(data[0].edges())
         crystal_atom_idx = dgl_get_tg_batch_tensor(data[0]).long()
 
-        atom_fea = self.embeddings[atom_fea.T[0].long()].float()
+        # atom_fea = self.embeddings[atom_fea.T[0].long()].float()
+        # print(atom_fea.dtype)
+        # print(self.embeddings_to_hidden)
         atom_fea = self.embeddings_to_hidden(atom_fea)
         nbr_fea = self.edge_to_nbr(nbr_fea)
 
         pe = self.pe_to_hidden(data[0].ndata['pe'])
 
-        line_fea = data[1].edata['h']
+        line_fea = 0 # data[1].edata['h']
         # line_fea = self.gf[-1].expand(line_fea).float()
-        line_fea_idx = torch.vstack(data[1].edges())
+        line_fea_idx = 0 # torch.vstack(data[1].edges())
         # line_fea = self.line_to_line(line_fea)
 
         for idx in range(len(self.convs)):
@@ -171,9 +176,9 @@ class SolutionNet(nn.Module):
         self.actv = nn.Softplus()
 
     def forward(self, data):
-        g, lg, g_s, lg_s, = data[0], data[1], data[2], data[3]
-        mol_rep = self.ctgn_a((g, lg))
-        sol_rep = self.ctgn_b((g_s, lg_s))
+        g, g_s, = data[0], data[1]
+        mol_rep = self.ctgn_a((g, 0))
+        sol_rep = self.ctgn_b((g_s, 0))
         all_rep = torch.cat([mol_rep, sol_rep], dim=-1)
 
         out = self.fc1(all_rep)

@@ -6,6 +6,7 @@ import dgl
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from pymatgen.core import Structure, Molecule
+from deepchem.feat import DMPNNFeaturizer
 
 import torch
 
@@ -212,3 +213,62 @@ def structure_from_pdb(pdb_block):
     lattice_mat = np.array([[50, 0, 0], [0, 50, 0], [0, 0, 50]])
     structure = Structure(lattice_mat, species, coords, coords_are_cartesian=True)
     return structure
+
+class MoleculesDatasetDMPNN(MoleculesDataset):
+    def __init__(self, atom_vocab, inputs, solvents, outputs, root='molecule_dataset', embedded=False):
+        super().__init__(atom_vocab, inputs, solvents, outputs, root, embedded)
+        featurizer = DMPNNFeaturizer()
+        self.g_inp = featurizer.featurize(inputs)
+        self.g_sol = featurizer.featurize(solvents)
+
+    def process(self, ginp, gsol, label):
+        return dc2dgl(ginp), dc2dgl(gsol), label
+
+    def __getitem__(self, idx):
+        mol = self.g_inp[idx]
+        label = self.outputs[idx]
+        sol = self.g_sol[idx]
+        name = hash(f'{mol}_{sol}')
+
+        try:
+            item = self.dict_graph[name]
+        except KeyError:
+            item = self.process(mol, sol, label)
+            self.dict_graph[name] = item
+
+        return item
+
+    @staticmethod
+    def collate_line_graph(
+            samples: List[Tuple[dgl.DGLGraph, dgl.DGLGraph, torch.Tensor]]
+    ):
+        """Dataloader helper to batch graphs cross `samples`."""
+        graphs, g_sol, labels = map(list, zip(*samples))
+        batched_graph = dgl.batch(graphs)
+        batched_g_sol = dgl.batch(g_sol)
+        return batched_graph, batched_g_sol, torch.tensor(labels).view(-1, 1)
+
+
+def dc2dgl(dc_graph):
+    node_features = torch.tensor(dc_graph.node_features, dtype=torch.float32)
+    edge_index = dc_graph.edge_index
+    edge_features = torch.tensor(dc_graph.edge_features)
+
+    nbr_starts = list(edge_index[0])
+    nbr_ends = list(edge_index[1])
+    max_idx_atoms = len(node_features) - 1
+    if max_idx_atoms not in nbr_ends:
+        nbr_starts.append(max_idx_atoms)
+        nbr_ends.append(max_idx_atoms)
+        edge_features = torch.cat([edge_features, torch.zeros(1, edge_features.shape[1])], dim=0)
+        print('MODIFIED')
+
+    edge_features = edge_features.to(torch.float32)
+    edge_index = torch.tensor([nbr_starts, nbr_ends])
+    graph = dgl.graph((edge_index[0], edge_index[1]))
+
+    graph.ndata['atom_features'] = node_features
+    graph.edata['spherical'] = edge_features
+
+    graph.ndata['pe'] = lpe(graph, 20)
+    return graph

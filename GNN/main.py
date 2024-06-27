@@ -7,10 +7,12 @@ from rdkit import Chem
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['TORCH_USE_CUDA_DSA'] = "1"
 
 # from matbench.bench import MatbenchBenchmark
 
-from data import MoleculeDataset, MoleculesDataset
+from data import MoleculeDataset, MoleculesDataset, MoleculesDatasetDMPNN
 from train import Trainer
 from model.NN import CrysToGraphNet, SolutionNet
 from model.bert_transformer import TransformerConvLayer
@@ -42,8 +44,8 @@ data = all_data
 parser = argparse.ArgumentParser(description='Run CrysToGraph on matbench.')
 parser.add_argument('--task', type=str, default='')
 parser.add_argument('--checkpoint', type=str, default='')
-parser.add_argument('--atom_fea_len', type=int, default=92)
-parser.add_argument('--nbr_fea_len', type=int, default=42)
+parser.add_argument('--atom_fea_len', type=int, default=133)
+parser.add_argument('--nbr_fea_len', type=int, default=14)
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--n_conv', type=int, default=3)
 parser.add_argument('--n_fc', type=int, default=2)
@@ -73,7 +75,7 @@ map_checkpoint = {
 }
 
 classification = False
-name = 'soqy'
+name = 'soqy_dc'
 train_set, val_set = split(data)
 fold = 0
 
@@ -128,15 +130,15 @@ else:
 milestones = [milestone1, milestone2]
 
 # define atom_vocab, dataset, model, trainer
-embeddings = torch.load(embeddings_path).cuda()
+embeddings = None # torch.load(embeddings_path).cuda()
 atom_vocab = joblib.load('atom_vocab.jbl')
-cd = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
-                     atom_vocab=atom_vocab,
-                     inputs=train_inputs,
-                     solvents=train_sols,
-                     outputs=train_outs)
+cd = MoleculesDatasetDMPNN(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
+                           atom_vocab=atom_vocab,
+                           inputs=train_inputs,
+                           solvents=train_sols,
+                           outputs=train_outs)
 module = nn.ModuleList([TransformerConvLayer(128, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
-         nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
+         0 # nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
 # module = None
 drop = 0.0 if not classification else 0.2
 ctgn = SolutionNet(atom_fea_len, nbr_fea_len,
@@ -152,11 +154,11 @@ trainer = Trainer(ctgn, name='%s_%d_%s' % (name, fold, args.remarks), classifica
 # predict
 # test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
 test_inputs, test_sols, test_outs = dataset_converter(val_set)
-td = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
-                     atom_vocab=atom_vocab,
-                     inputs=test_inputs,
-                     solvents=test_sols,
-                     outputs=test_outs)
+td = MoleculesDatasetDMPNN(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
+                           atom_vocab=atom_vocab,
+                           inputs=test_inputs,
+                           solvents=test_sols,
+                           outputs=test_outs)
 test_loader = DataLoader(td, batch_size=2, shuffle=False, collate_fn=cd.collate_line_graph)
 
 # train
