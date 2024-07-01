@@ -14,6 +14,7 @@ from graph_utils import laplacian_positional_encoding as lpe
 from graph_utils import random_walk_positional_encoding as rwpe
 from graph_utils import prepare_line_graph_batch
 from graph_utils import compute_bond_cosines, convert_spherical
+from model.NN import GausianFilter as GF
 
 
 class MoleculeDataset(torch.utils.data.Dataset):
@@ -221,20 +222,26 @@ class MoleculesDatasetDMPNN(MoleculesDataset):
         self.g_inp = featurizer.featurize(inputs)
         self.g_sol = featurizer.featurize(solvents)
 
-    def process(self, ginp, gsol, label):
+    def process_new(self, ginp, gsol, label):
         return dc2dgl(ginp), dc2dgl(gsol), label
 
     def __getitem__(self, idx):
         mol = self.g_inp[idx]
         label = self.outputs[idx]
         sol = self.g_sol[idx]
-        name = hash(f'{mol}_{sol}')
+        mol_smi = self.inputs[idx]
+        sol_smi = self.solvents[idx]
+        # name = hash(f'{mol_smi}_{sol_smi}')
 
         try:
-            item = self.dict_graph[name]
+            item = self.dict_graph[idx]
         except KeyError:
-            item = self.process(mol, sol, label)
-            self.dict_graph[name] = item
+            gn, gsn, label = self.process_new(mol, sol, label)
+            # g, _lg, gs, _lgs, _label = self.process(idx, (mol, sol), label)
+            # gn.ndata['atom_features'] = torch.cat([gn.ndata['atom_features'], g.ndata['atom-features']], dim=-1)
+            # gn.edata['spherical'] = torch.cat([gn.edata['atom_features'], g.edata['atom-features']], dim=-1)
+            item = gn, gsn, label
+            self.dict_graph[idx] = item
 
         return item
 
@@ -272,3 +279,75 @@ def dc2dgl(dc_graph):
 
     graph.ndata['pe'] = lpe(graph, 20)
     return graph
+
+def mol2dglgraph_new(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False, max_nbr=12, max_radius=8):
+    """
+    dgl graph object
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if add_h:
+        mol = Chem.AddHs(mol)
+
+    if rdgraph:
+        raise KeyError('rdgraph not implemented')
+    else:
+        AllChem.EmbedMolecule(mol)
+        pdb_block = Chem.MolToPDBBlock(mol)
+        structure = structure_from_pdb(pdb_block)
+
+    if embedding:
+        atom_emb = torch.vstack([atom_vocab.get_atom_embedding(structure[i].specie.number)
+                                 for i in range(len(structure))])  # torch_geometric
+    else:
+        atom_tokens = [atom.symbol for atom in structure.species]
+        atom_emb = torch.Tensor([atom_vocab.vocab.lookup_indices(atom_tokens)]).T
+
+    pos = torch.Tensor(structure.cart_coords)
+    radius = max_radius
+
+    all_nbrs = structure.get_all_neighbors(radius)
+    nbr_starts, nbr_ends = [], []
+    cart_starts, cart_ends = [], []
+    count = 0
+
+    all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
+
+    for nbr in all_nbrs:
+        nbr_ends.extend(list([count] * len(nbr))[:max_nbr])
+        nbr_starts.extend(list(map(lambda x: x[2], nbr))[:max_nbr])
+        cart_starts.extend(list([pos[count] for _ in range(len(nbr))])[:max_nbr])
+        cart_ends.extend(list(map(lambda x: x.coords, nbr))[:max_nbr])
+
+        count += 1
+
+    max_idx_atoms = len(atom_emb) - 1
+    if max_idx_atoms not in nbr_ends:
+        nbr_starts.append(max_idx_atoms)
+        nbr_ends.append(max_idx_atoms)
+        cart_starts.append(pos[max_idx_atoms])
+        cart_ends.append(pos[max_idx_atoms])
+        print('MODIFIED')
+
+    nbr_starts, nbr_ends = np.array(nbr_starts), np.array(nbr_ends)
+
+    nbr_starts = torch.Tensor(nbr_starts).long()
+    nbr_ends = torch.Tensor(nbr_ends).long()
+
+    graph = dgl.graph((nbr_starts, nbr_ends))
+
+    graph.edata['r'] = torch.tensor(np.vstack(cart_ends) - np.vstack(cart_starts))
+
+    lg = graph.line_graph(shared=True)
+    lg.apply_edges(compute_bond_cosines)
+
+    graph.ndata['atom_features'] = atom_emb
+    graph.edata['spherical'] = convert_spherical(graph.edata['r'])
+
+    graph.ndata['pe'] = torch.cat([lpe(graph, 20), rwpe(graph, 20)], dim=-1)
+    graph.edata.pop('r')
+
+    line_fea = lg.edata['h']
+    lg.edata['h'] = torch.nan_to_num(line_fea, 0.0)
+    lg.ndata.pop('r')
+
+    return graph, lg
