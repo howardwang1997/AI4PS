@@ -4,35 +4,29 @@ import joblib
 import argparse
 
 from rdkit import Chem
-import torch
-from torch import nn, optim
-from torch.utils.data import DataLoader
-
-# from matbench.bench import MatbenchBenchmark
-
-from data import MoleculeDataset, MoleculesDataset
-from train import Trainer
-from model.NN import CrysToGraphNet, SolutionNet
-from model.bert_transformer import TransformerConvLayer
-from gnn_utils import dataset_converter, split
 
 # for debug
-with open('../data/dataset_close_1.json') as f:
+with open('../data/dataset_close_3.json') as f:
     d = json.load(f)
 data = d['soqy']
 all_data = []
-for d in data:
+for i in range(len(data)):
+    d = data[i]
     try:
         mol = Chem.MolFromSmiles(d[0])
         sol = Chem.MolFromSmiles(d[1])
         if mol and sol:
             if '*' in d[0]:
+                print(f'MOLECULE ERROR in soqy {i}')
                 continue
             else:
                 all_data.append(d)
+        else:
+            print(f'MOLECULE ERROR in soqy {i}')
     except TypeError:
-        print(d[0])
-        print(d[1])
+            print(f'SOLVENT ERROR in soqy {i}')
+        # print(d[0])
+        # print(d[1])
 print(len(data), len(all_data))
 data = all_data
 
@@ -45,9 +39,9 @@ parser.add_argument('--checkpoint', type=str, default='')
 parser.add_argument('--atom_fea_len', type=int, default=92)
 parser.add_argument('--nbr_fea_len', type=int, default=42)
 parser.add_argument('--batch_size', type=int, default=16)
-parser.add_argument('--n_conv', type=int, default=3)
+parser.add_argument('--n_conv', type=int, default=0)
 parser.add_argument('--n_fc', type=int, default=2)
-parser.add_argument('--n_gt', type=int, default=0)
+parser.add_argument('--n_gt', type=int, default=2)
 parser.add_argument('--epochs', type=int, default=-1)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--lr', type=float, default=0.0001)
@@ -62,7 +56,10 @@ parser.add_argument('--checkpoint2', type=str, default='')
 parser.add_argument('--checkpoint3', type=str, default='')
 parser.add_argument('--checkpoint4', type=str, default='')
 parser.add_argument('--remarks', type=str, default='')
+parser.add_argument('--gpu', type=int, default=0)
 args = parser.parse_args()
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
 map_checkpoint = {
     0: args.checkpoint0,
@@ -71,6 +68,19 @@ map_checkpoint = {
     3: args.checkpoint3,
     4: args.checkpoint4,
 }
+
+
+import torch
+from torch import nn, optim
+from torch.utils.data import DataLoader
+
+# from matbench.bench import MatbenchBenchmark
+
+from data import MoleculesDataset
+from train import Trainer
+from model.NN import  SolutionNet
+from model.bert_transformer import TransformerConvLayer
+from gnn_utils import dataset_converter, split
 
 classification = False
 name = 'soqy'
@@ -123,8 +133,8 @@ if epochs == -1:
     else:
         epochs = 500
         grad_accum = 8
-grad_accum = 2
-epochs = 2000
+grad_accum = 1
+epochs = 3000
 
 milestone2 = 99999
 if args.milestone1 > 0:
@@ -185,4 +195,4 @@ targets_p_t = {
     'predictions': torch.tensor(predictions).cpu(),
     'targets': torch.tensor(test_outs).cpu()
 }
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_checkpoint.pt', loss, targets_p_t)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.gpu}_checkpoint.pt', loss, targets_p_t)

@@ -184,7 +184,8 @@ def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False
     graph.ndata['atom_features'] = atom_emb
     graph.edata['spherical'] = convert_spherical(graph.edata['r'])
 
-    graph.ndata['pe'] = torch.cat([lpe(graph, 20), rwpe(graph, 20)], dim=-1)
+    # graph.ndata['pe'] = torch.cat([lpe(graph, 20), rwpe(graph, 20)], dim=-1)
+    graph.ndata['pe'] = lpe(graph, 20)
     graph.edata.pop('r')
     
     line_fea = lg.edata['h']

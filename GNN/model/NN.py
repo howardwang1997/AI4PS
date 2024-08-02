@@ -75,7 +75,7 @@ class CrysToGraphNet(nn.Module):
             else:
                 self.convs = module
 
-        self.pe_to_hidden = nn.Linear(40, h_fea_len)
+        self.pe_to_hidden = nn.Linear(20, h_fea_len)
 
         self.gts = nn.Sequential(*[GlobalTransformerLayer(h_fea_len, 32, 8, edge_dim=nbr_fea_len)
                                    for _ in range(n_gt)])
