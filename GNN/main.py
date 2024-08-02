@@ -125,7 +125,7 @@ if epochs == -1:
         epochs = 500
         grad_accum = 8
 grad_accum = 1
-epochs = 3000
+epochs = 2000
 
 milestone2 = 99999
 if args.milestone1 > 0:
