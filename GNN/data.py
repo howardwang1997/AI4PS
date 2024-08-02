@@ -138,60 +138,60 @@ def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False
 
     if embedding:
         atom_emb = torch.vstack([atom_vocab.get_atom_embedding(structure[i].specie.number)
-                                for i in range(len(structure))]) #torch_geometric
+                                 for i in range(len(structure))])  # torch_geometric
     else:
         atom_tokens = [atom.symbol for atom in structure.species]
         atom_emb = torch.Tensor([atom_vocab.vocab.lookup_indices(atom_tokens)]).T
-        
+
     pos = torch.Tensor(structure.cart_coords)
     radius = max_radius
-    
+
     all_nbrs = structure.get_all_neighbors(radius)
     nbr_starts, nbr_ends = [], []
     cart_starts, cart_ends = [], []
     count = 0
-    
+
     all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
 
     for nbr in all_nbrs:
-        nbr_ends.extend(list([count]*len(nbr))[:max_nbr])
+        nbr_ends.extend(list([count] * len(nbr))[:max_nbr])
         nbr_starts.extend(list(map(lambda x: x[2], nbr))[:max_nbr])
         cart_starts.extend(list([pos[count] for _ in range(len(nbr))])[:max_nbr])
         cart_ends.extend(list(map(lambda x: x.coords, nbr))[:max_nbr])
 
         count += 1
-        
-    max_idx_atoms = len(atom_emb)-1
+
+    max_idx_atoms = len(atom_emb) - 1
     if max_idx_atoms not in nbr_ends:
         nbr_starts.append(max_idx_atoms)
         nbr_ends.append(max_idx_atoms)
         cart_starts.append(pos[max_idx_atoms])
         cart_ends.append(pos[max_idx_atoms])
         print('MODIFIED')
-        
+
     nbr_starts, nbr_ends = np.array(nbr_starts), np.array(nbr_ends)
-    
+
     nbr_starts = torch.Tensor(nbr_starts).long()
     nbr_ends = torch.Tensor(nbr_ends).long()
-    
+
     graph = dgl.graph((nbr_starts, nbr_ends))
-    
+
     graph.edata['r'] = torch.tensor(np.vstack(cart_ends) - np.vstack(cart_starts))
 
     lg = graph.line_graph(shared=True)
     lg.apply_edges(compute_bond_cosines)
-    
+
     graph.ndata['atom_features'] = atom_emb
     graph.edata['spherical'] = convert_spherical(graph.edata['r'])
 
     # graph.ndata['pe'] = torch.cat([lpe(graph, 20), rwpe(graph, 20)], dim=-1)
     graph.ndata['pe'] = lpe(graph, 20)
     graph.edata.pop('r')
-    
+
     line_fea = lg.edata['h']
     lg.edata['h'] = torch.nan_to_num(line_fea, 0.0)
     lg.ndata.pop('r')
-    
+
     return graph, lg
 
 
