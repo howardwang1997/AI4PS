@@ -1,0 +1,159 @@
+solvent,SMILES
+ethanol,CCO
+ethanolic solution,CCO
+Ethanol,CCO
+CH2Cl2,C(Cl)Cl
+ACN,CC#N
+Hexane,CCCCCC
+PhCH3,Cc1ccccc1
+PBS+2% TX100,CC(C)(C)CC(C)(C)c1ccc(cc1)OCCOCCOCCOCCOCCOCCOCCO
+aerated acetonitrile,CC#N
+acetonitrile,CC#N
+PBS containing 5% DMSO (V/V),CS(=O)C
+DMF,CN(C)C=O
+CCl4,Cl(Cl)(Cl)(Cl)Cl
+Water/DMSO 9:1,CS(=O)C
+PBS,O
+MeOH,CO
+air-equilibrated acetonitrile,CC#N
+DCM,C(Cl)Cl
+Acetonitrile,CC#N
+10% DMSO/DPBS,c1ccc(cc1)S(=O)(=O)Oc2ccc(cc2Cl)Cl
+ethanol(containing 0.1% acetic acid),CCO
+acetonitrile solution,CC#N
+Methanol,CO
+DMF/DPBS 1:1,c1ccc(cc1)S(=O)(=O)Oc2ccc(cc2Cl)Cl
+DMSO,CS(=O)C
+CH2Cl2/MeOH,C(Cl)Cl
+1.0% DMSO–DPBS buffer (pH = 7.4),CS(=O)C
+THF,C1CCOC1
+Pinacolone,CC(=O)C(C)(C)C
+isopropyl ether,CC(C)OC(C)C
+toluene,Cc1ccccc1
+1%DMSO/DMEM,CS(=O)C
+PBS(7.4),O
+C6H6,c1ccccc1
+CH3OH+HCl,CO
+chloroform,ClC(Cl)Cl
+air-equilibrated ACN,CC#N
+EtOAc,CCOC(=O)C
+phosphate buffer,O
+PBS7,O
+dichloromethane,C(Cl)Cl
+Na2HPO4-NaH2PO4 buffer solutoin,OP(=O)([O-])[O-].[Na+].[Na+]
+Acetone,CC(=O)C
+sodium phosphate buffer (pH7.6),O
+sodium hydrosulfite solution,O
+D-PBS/TX100,CC(C)(C)CC(C)(C)c1ccc(cc1)OCCOCCOCCOCCOCCOCCOCCO
+pure water,O
+BP/TX100,CC(C)(C)CC(C)(C)c1ccc(cc1)OCCOCCOCCOCCOCCOCCOCCO
+"CH2Cl2/CH3OH(9:1,v/v)",C(Cl)Cl
+5%DMSO/PBS,CS(=O)C
+CH3Cl,CCl
+water(pH=6.6),O
+DMA,CN(C)C
+aqueous solution,O
+H2O,O
+1% DMSO-DPBS buffer medium (pH= 7.4),CS(=O)C
+H2SO4,OS(=O)(=O)O
+CH3CN/H2O(9:1 v/v) with 100 μL HCl(1.0M),CC#N
+ethyl acetate,CCOC(=O)C
+spectral grade toluene(add 0.1-0.01 M pyridine),Cc1ccccc1
+CH3CN/H2O(9:1 v/v),CC#N
+TX-100,CC(C)(C)CC(C)(C)c1ccc(cc1)OCCOCCOCCOCCOCCOCCOCCO
+dry DCM,C(Cl)Cl
+DMSO-H2O,CS(=O)C
+CH3CN+HCl,CC#N
+isopropanol,CC(C)O
+tetrahydrofuran,C1CCOC1
+MeCN,CC#N
+Water/etanol,CCO
+washing liquid,
+benzene,c1ccccc1
+n-Hexane,CCCCCC
+CH2Cl2,C(Cl)Cl
+free-dye solution,
+deionized water,O
+CH3OH,CO
+CHCl3,C(Cl)(Cl)Cl
+DMSO+HCl,CCO
+PBS/V),O
+"Water: Ethanol (1:1, v/v)",CCO
+n-hexane,CCCCCC
+aqueous solution at pH 7.25(Na2HPO4 and NaCl),OP(=O)([O-])[O-].[Na+].[Na+]
+CH2Cl2/EtOH,C(Cl)Cl
+deuterated water.,[2H]O[2H]
+1:1 CH3CN/H2O,CC#N
+CH3CN,CC#N
+10%DMSO-DMEM,CS(=O)C
+spectral grade toluene,Cc1ccccc1
+20%DMSO/DPBS,CS(=O)C
+water（pH=9）,O
+Ethyl acetate,CCOC(=O)C
+HEPES buffer,C1CN(CCN1CCO)CCS(=O)(=O)O
+DPBS,O
+mQ water,O  
+cyclohexane,C1CCCCC1
+methanol,CO
+D2O,[2H]O[2H]
+DMSO:PBS7=1:1,CS(=O)C
+sodium phosphate buffer,O
+biological serum,
+PH=8.0,
+methanol/ dichloromethane=99/1,CO
+PBS:DMSO(8:1),
+c-hexane,CCCCCC
+or methanol,CO
+CHCI3,ClC(Cl)Cl
+"pH = 7.25 (Mcllvaine buffer, [Na2HPO4] = [citric acid] = 7.5 × 10−3 mol L−1), with controlled ionic strength by addition of NaCl (0.10 mol L−1)",OP(=O)([O-])[O-].[Na+].[Na+]
+DCM(CH2Cl2),C(Cl)Cl
+dichloromethane(CH2Cl2),C(Cl)Cl
+1% DMSO-DPBS buffer medium (pH = 7.4),CS(=O)C
+DPBF,
+water+1%KOH,[OH-].[K+]
+water,O
+saline,
+PBS7.4,
+CH3COCH3,CC(=O)C
+phosphate buffer pH 7.0,O
+EtOH,CCO
+hexane,CCCCCC
+air-equilibrated CHCl3,C(Cl)(Cl)Cl
+Toluene,Cc1ccccc1
+5%DMSO-PBS,CS(=O)C
+CHCl3,C(Cl)(Cl)Cl
+PB/TX100,CC(C)(C)CC(C)(C)c1ccc(cc1)OCCOCCOCCOCCOCCOCCOCCO
+sodium hydrosulfite\nsolution,[O-]S(=O)S(=O)[O-].[Na+].[Na+]
+sodium hydrosulfite,[O-]S(=O)S(=O)[O-].[Na+].[Na+]
+2-Pentanone,CCCC(=O)C
+1-octanol,CCCCCCCCO
+Triethylamine,CCN(CC)CC
+Tert-pentanol,CCC(C)(C)O
+Diethyl ether,CCOCC
+Benzene,c1ccccc1
+1-Octanol,CCCCCCCCO
+Methyl formate,COC=O
+1-methyl-2-pyrrolidinone,CN1CCCC1=O
+2-Methylbutane,CCC(C)C
+Ethylene glycol,C(CO)O
+"1,2-propanediol",CC(CO)O
+dioxane,C1COCCO1
+1-Propanol,CCCO
+DCB,c1cc(c(cc1c2ccc(c(c2)Cl)N)Cl)N
+Di-n-butyl ether,CCCCOCCCC
+2-propanol,CC(C)O
+2-methyl-2-propanol,CC(C)(C)O
+triethylamine,CCN(CC)CC
+1-propanol,CCCO
+1-Hexanol,CCCCCCO
+2-Propanol,CC(C)O
+Formamide,C(=O)N
+Butyl acetate,CCCCOC(=O)C
+1-Butanol,CCCCO
+TFE,C(C(F)(F)F)O
+N-Methylformamide,CNC=O
+ethylene glycol,C(CO)O
+heptane,CCCCCCC
+Glycerol,C(C(CO)O)O
+1-Decanol,CCCCCCCCCCO
+Pyridine,c1ccncc1
