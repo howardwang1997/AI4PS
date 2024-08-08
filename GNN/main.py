@@ -6,7 +6,7 @@ import argparse
 from rdkit import Chem
 
 # for debug
-with open('../data/dataset_close_3.json') as f:
+with open('../data/dataset_close_5.json') as f:
     d = json.load(f)
 data = d['soqy']
 all_data = []
@@ -24,7 +24,7 @@ for i in range(len(data)):
         else:
             print(f'MOLECULE ERROR in soqy {i}')
     except TypeError:
-            print(f'SOLVENT ERROR in soqy {i}')
+            print(f'SOLVENT ERROR in soqy {i}, {d}')
         # print(d[0])
         # print(d[1])
 print(len(data), len(all_data))
