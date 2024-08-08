@@ -186,4 +186,4 @@ targets_p_t = {
     'predictions': torch.tensor(predictions).cpu(),
     'targets': torch.tensor(test_outs).cpu()
 }
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.gpu}_checkpoint.pt', loss, targets_p_t)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_chemprop_{args.gpu}_checkpoint.pt', loss, targets_p_t)
