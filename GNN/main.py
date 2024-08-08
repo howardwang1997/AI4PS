@@ -76,7 +76,7 @@ from torch.utils.data import DataLoader
 
 # from matbench.bench import MatbenchBenchmark
 
-from data import MoleculesDataset
+from data import MoleculesDataset, MoleculesDatasetDMPNN
 from train import Trainer
 from model.NN import  SolutionNet
 from model.bert_transformer import TransformerConvLayer
