@@ -14,7 +14,7 @@ from graph_utils import laplacian_positional_encoding as lpe
 from graph_utils import random_walk_positional_encoding as rwpe
 from graph_utils import prepare_line_graph_batch
 from graph_utils import compute_bond_cosines, convert_spherical
-from model.NN import GausianFilter as GF
+from model.NN import GaussianFilter as GF
 
 
 class MoleculeDataset(torch.utils.data.Dataset):

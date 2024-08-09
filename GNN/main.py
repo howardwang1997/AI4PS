@@ -8,7 +8,7 @@ from rdkit import Chem
 # for debug
 with open('../data/dataset_close_5.json') as f:
     d = json.load(f)
-data = d['soqy']
+data = d['absorption']
 all_data = []
 for i in range(len(data)):
     d = data[i]
@@ -17,18 +17,19 @@ for i in range(len(data)):
         sol = Chem.MolFromSmiles(d[1])
         if mol and sol:
             if '*' in d[0]:
-                print(f'MOLECULE ERROR in soqy {i}')
+                print(f'MOLECULE ERROR in absorption {i}')
                 continue
             else:
                 all_data.append(d)
         else:
-            print(f'MOLECULE ERROR in soqy {i}')
+            print(f'MOLECULE ERROR in absorption {i}')
     except TypeError:
-            print(f'SOLVENT ERROR in soqy {i}, {d}')
+            print(f'SOLVENT ERROR in absorption {i}, {d}')
         # print(d[0])
         # print(d[1])
 print(len(data), len(all_data))
 data = all_data
+exit()
 
 # mb = MatbenchBenchmark(autoload=False)
 # mb = mb.from_preset('matbench_v0.1', 'structure')
@@ -40,7 +41,7 @@ parser.add_argument('--atom_fea_len', type=int, default=133)
 parser.add_argument('--nbr_fea_len', type=int, default=14)
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--n_conv', type=int, default=0)
-parser.add_argument('--n_fc', type=int, default=2)
+parser.add_argument('--n_fc', type=int, default=1)
 parser.add_argument('--n_gt', type=int, default=2)
 parser.add_argument('--epochs', type=int, default=-1)
 parser.add_argument('--weight_decay', type=float, default=0.0)
@@ -57,6 +58,7 @@ parser.add_argument('--checkpoint3', type=str, default='')
 parser.add_argument('--checkpoint4', type=str, default='')
 parser.add_argument('--remarks', type=str, default='')
 parser.add_argument('--gpu', type=int, default=0)
+parser.add_argument('--seed', type=int, default=52)
 args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -83,8 +85,8 @@ from model.bert_transformer import TransformerConvLayer
 from gnn_utils import dataset_converter, split
 
 classification = False
-name = 'soqy_dc'
-train_set, val_set = split(data)
+name = 'abs_dc'
+train_set, val_set = split(data, seed=args.seed)
 fold = 0
 
 # hyperparameters
@@ -186,4 +188,4 @@ targets_p_t = {
     'predictions': torch.tensor(predictions).cpu(),
     'targets': torch.tensor(test_outs).cpu()
 }
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_chemprop_{args.gpu}_checkpoint.pt', loss, targets_p_t)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_chemprop_gt1_{args.remarks}_checkpoint.pt', loss, targets_p_t)
