@@ -38,7 +38,7 @@ parser.add_argument('--task', type=str, default='')
 parser.add_argument('--checkpoint', type=str, default='')
 parser.add_argument('--atom_fea_len', type=int, default=92)
 parser.add_argument('--nbr_fea_len', type=int, default=42)
-parser.add_argument('--batch_size', type=int, default=16)
+parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--n_conv', type=int, default=0)
 parser.add_argument('--n_fc', type=int, default=2)
 parser.add_argument('--n_gt', type=int, default=2)
@@ -57,6 +57,7 @@ parser.add_argument('--checkpoint3', type=str, default='')
 parser.add_argument('--checkpoint4', type=str, default='')
 parser.add_argument('--remarks', type=str, default='')
 parser.add_argument('--gpu', type=int, default=0)
+parser.add_argument('--seed', type=int, default=42)
 args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -84,7 +85,7 @@ from gnn_utils import dataset_converter, split
 
 classification = False
 name = 'soqy'
-train_set, val_set = split(data)
+train_set, val_set = split(data, seed=args.seed)
 fold = 0
 
 # hyperparameters
