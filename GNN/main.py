@@ -84,7 +84,7 @@ from model.bert_transformer import TransformerConvLayer
 from gnn_utils import dataset_converter, split
 
 classification = False
-name = 'soqy'
+name = 'soqy_rg'
 train_set, val_set = split(data, seed=args.seed)
 fold = 0
 
@@ -187,4 +187,4 @@ targets_p_t = {
     'predictions': torch.tensor(predictions).cpu(),
     'targets': torch.tensor(test_outs).cpu()
 }
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.gpu}_checkpoint.pt', loss, targets_p_t)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.remarks}_checkpoint.pt', loss, targets_p_t)
