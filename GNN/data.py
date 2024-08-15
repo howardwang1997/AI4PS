@@ -1,5 +1,6 @@
 import joblib
 import numpy as np
+import hashlib
 
 from typing import Tuple, List
 import dgl
@@ -95,7 +96,8 @@ class MoleculesDataset(MoleculeDataset):
         mol = self.inputs[idx]
         label = self.outputs[idx]
         sol = self.solvents[idx]
-        name = hash(f'{mol}_{sol}')
+        hash_obj = hashlib.sha256(f'{mol}_{sol}'.encode('ascii'))
+        name = hash_obj.hexdigest()
 
         try:
             item = self.dict_graph[name]
@@ -125,6 +127,10 @@ def mol2dglgraph(smiles, atom_vocab, embedding=False, rdgraph=False, add_h=False
     """
     dgl graph object
     """
+    # if torch.cuda.is_available():
+    #     device = torch.device('cuda')
+    # else:
+    #     device = torch.device('cpu')
     mol = Chem.MolFromSmiles(smiles)
     if add_h:
         mol = Chem.AddHs(mol)

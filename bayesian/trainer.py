@@ -34,7 +34,7 @@ class BayesianPredictor:
         pass
 
     def predict(self, parameters):
-        test_inputs = parameters
+        test_inputs = parameters       
         test_inputs = test_inputs.to(self.device)
 
         with torch.no_grad():
