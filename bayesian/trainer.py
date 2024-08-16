@@ -35,6 +35,9 @@ class BayesianPredictor:
 
     def predict(self, parameters):
         test_inputs = parameters
+        """
+        NEED IMPLEMENTATION, data conversion
+        """
         test_inputs = test_inputs.to(self.device)
 
         with torch.no_grad():

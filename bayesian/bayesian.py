@@ -19,15 +19,21 @@ def _make_objectives():
 
 
 def _get_photosensitizers(smiles=['']):
+    """
+    NEED IMPLEMENTATION, read data
+    """
     return smiles
 
 
 def _get_solvents(smiles=['']):
+    """
+    NEED IMPLEMENTATION, read data
+    """
     return smiles
 
 
 def evaluate(parameters, predictor):
-    soqy, absorption = predictor.predict(parameters)[0].item(), predictor.predict(parameters)[1].item()
+    soqy, absorption = predictgit or.predict(parameters)[0].item(), predictor.predict(parameters)[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
     results = {"phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
