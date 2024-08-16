@@ -4,35 +4,29 @@ import joblib
 import argparse
 
 from rdkit import Chem
-import torch
-from torch import nn, optim
-from torch.utils.data import DataLoader
-
-# from matbench.bench import MatbenchBenchmark
-
-from data import MoleculeDataset, MoleculesDataset
-from train import Trainer
-from model.NN import CrysToGraphNet, SolutionNet
-from model.bert_transformer import TransformerConvLayer
-from gnn_utils import dataset_converter, split
 
 # for debug
-with open('../data/dataset_close_1.json') as f:
+with open('../data/dataset_close_5.json') as f:
     d = json.load(f)
 data = d['soqy']
 all_data = []
-for d in data:
+for i in range(len(data)):
+    d = data[i]
     try:
         mol = Chem.MolFromSmiles(d[0])
         sol = Chem.MolFromSmiles(d[1])
         if mol and sol:
             if '*' in d[0]:
+                print(f'MOLECULE ERROR in soqy {i}')
                 continue
             else:
                 all_data.append(d)
+        else:
+            print(f'MOLECULE ERROR in soqy {i}')
     except TypeError:
-        print(d[0])
-        print(d[1])
+            print(f'SOLVENT ERROR in soqy {i}, {d}')
+        # print(d[0])
+        # print(d[1])
 print(len(data), len(all_data))
 data = all_data
 
@@ -44,10 +38,10 @@ parser.add_argument('--task', type=str, default='')
 parser.add_argument('--checkpoint', type=str, default='')
 parser.add_argument('--atom_fea_len', type=int, default=92)
 parser.add_argument('--nbr_fea_len', type=int, default=42)
-parser.add_argument('--batch_size', type=int, default=16)
-parser.add_argument('--n_conv', type=int, default=3)
+parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--n_conv', type=int, default=0)
 parser.add_argument('--n_fc', type=int, default=2)
-parser.add_argument('--n_gt', type=int, default=0)
+parser.add_argument('--n_gt', type=int, default=2)
 parser.add_argument('--epochs', type=int, default=-1)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--lr', type=float, default=0.0001)
@@ -62,7 +56,11 @@ parser.add_argument('--checkpoint2', type=str, default='')
 parser.add_argument('--checkpoint3', type=str, default='')
 parser.add_argument('--checkpoint4', type=str, default='')
 parser.add_argument('--remarks', type=str, default='')
+parser.add_argument('--gpu', type=int, default=0)
+parser.add_argument('--seed', type=int, default=42)
 args = parser.parse_args()
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
 map_checkpoint = {
     0: args.checkpoint0,
@@ -72,9 +70,22 @@ map_checkpoint = {
     4: args.checkpoint4,
 }
 
+
+import torch
+from torch import nn, optim
+from torch.utils.data import DataLoader
+
+# from matbench.bench import MatbenchBenchmark
+
+from data import MoleculesDataset
+from train import Trainer
+from model.NN import  SolutionNet
+from model.bert_transformer import TransformerConvLayer
+from gnn_utils import dataset_converter, split
+
 classification = False
-name = 'soqy'
-train_set, val_set = split(data)
+name = 'soqy_rg'
+train_set, val_set = split(data, seed=args.seed)
 fold = 0
 
 # hyperparameters
@@ -91,7 +102,8 @@ if args.checkpoint0 != '' and args.checkpoint1 != '' and args.checkpoint2 != '' 
     pretrained = separated_checkpoint = True
 
 embeddings_path = ''
-atom_vocab = joblib.load('config/100_vocab.jbl')
+embeddings_path = '/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/embeddings_100_cgcnn.pt'
+atom_vocab = joblib.load('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
 
 # mkdir
 try:
@@ -113,7 +125,7 @@ if epochs == -1:
     else:
         epochs = 500
         grad_accum = 8
-grad_accum = 2
+grad_accum = 1
 epochs = 2000
 
 milestone2 = 99999
@@ -129,7 +141,7 @@ milestones = [milestone1, milestone2]
 # define atom_vocab, dataset, model, trainer
 embeddings = torch.load(embeddings_path).cuda()
 atom_vocab = joblib.load('atom_vocab.jbl')
-cd = MoleculesDataset(root=name,
+cd = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
                      atom_vocab=atom_vocab,
                      inputs=train_inputs,
                      solvents=train_sols,
@@ -151,7 +163,7 @@ trainer = Trainer(ctgn, name='%s_%d_%s' % (name, fold, args.remarks), classifica
 # predict
 # test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
 test_inputs, test_sols, test_outs = dataset_converter(val_set)
-td = MoleculesDataset(root=name,
+td = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps',
                      atom_vocab=atom_vocab,
                      inputs=test_inputs,
                      solvents=test_sols,
@@ -175,4 +187,4 @@ targets_p_t = {
     'predictions': torch.tensor(predictions).cpu(),
     'targets': torch.tensor(test_outs).cpu()
 }
-trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_checkpoint.pt', loss, targets_p_t)
+trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.remarks}_checkpoint.pt', loss, targets_p_t)

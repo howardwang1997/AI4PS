@@ -59,13 +59,13 @@ class CrysToGraphNet(nn.Module):
 
         if module is None:
             self.convs = nn.ModuleList([tgnn.CGConv(channels=h_fea_len,
-                                                    dim=nbr_fea_len,
-                                                    batch_norm=True)
-                                        for _ in range(n_conv)])  # need modifying with more types of conv layers
+                                                   dim=nbr_fea_len,
+                                                   batch_norm=True)
+                                       for _ in range(n_conv)]) # need modifying with more types of conv layers
             self.line_convs = nn.ModuleList([tgnn.CGConv(channels=h_fea_len,
-                                                         dim=nbr_fea_len,
-                                                         batch_norm=True)
-                                             for _ in range(n_conv)])  # need modifying with more types of conv layers
+                                             dim=nbr_fea_len,
+                                             batch_norm=True)
+                                 for _ in range(n_conv)]) # need modifying with more types of conv layers
         else:
             if isinstance(module, tuple):
                 self.convs, self.line_convs = module
