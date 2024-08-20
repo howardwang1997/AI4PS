@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from GNN.make_checkpoint import make_checkpoint
+from GNN.make_checkpoint import make_checkpoint, get_atom_vocab
 from GNN.data import MoleculesDataset
 from GNN.gnn_utils import dataset_converter
 from GNN.train import Trainer
@@ -18,7 +18,11 @@ class BayesianPredictor:
                  checkpoint1,
                  device='gpu',
                  save_path='bayesian_sd.pt'):
-        models = make_checkpoint(checkpoint0, checkpoint1)
+        self.embeddings_path = '/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/embeddings_100_cgcnn.pt'
+        self.atom_vocab = get_atom_vocab('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
+        # self.embeddings = torch.load(self.embeddings_path).to(self.device)
+
+        models = make_checkpoint(checkpoint0, checkpoint1, self.embeddings_path)
         self.model_soqy = models['model_0']
         self.model_abs = models['model_1']
         self.val_loss_soqy = models['loss_0']
@@ -36,11 +40,6 @@ class BayesianPredictor:
 
         # self.save_path = save_path
         
-        # init dataloader
-        self.embeddings_path = '/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/embeddings_100_cgcnn.pt'
-        self.atom_vocab = joblib.load('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
-        self.embeddings = torch.load(self.embeddings_path).to(self.device)
-
     def get_dataloader(self, data):
         """
         data: List[List[str, str]]

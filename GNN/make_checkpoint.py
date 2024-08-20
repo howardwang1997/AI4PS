@@ -1,10 +1,11 @@
+import joblib
 import torch
 from torch import nn
 from .model.NN import SolutionNet
 from .model.bert_transformer import TransformerConvLayer
 
 
-def make_checkpoint(checkpoint0, checkpoint1, n_conv=3, n_fc=1, n_gt=0):
+def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=2, n_gt=1):
     map_checkpoint = {
         0: checkpoint0,
         1: checkpoint1,
@@ -13,8 +14,6 @@ def make_checkpoint(checkpoint0, checkpoint1, n_conv=3, n_fc=1, n_gt=0):
     # hyperparameters
     atom_fea_len = 92
     nbr_fea_len = 42
-
-    embeddings_path = '../GNN/config/embeddings_100_cgcnn.pt'
 
     # define atom_vocab, dataset, model, trainer
     embeddings = torch.load(embeddings_path).cuda()
@@ -48,3 +47,8 @@ def make_checkpoint(checkpoint0, checkpoint1, n_conv=3, n_fc=1, n_gt=0):
     }
 
     return checkpoint
+
+
+def get_atom_vocab(atom_vocab_path):
+    atom_vocab = joblib.load(atom_vocab_path)
+    return atom_vocab

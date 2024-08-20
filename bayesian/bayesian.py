@@ -72,7 +72,7 @@ def screen(components: dict,
             {
                 "name": k,
                 "type": "choice",
-                "bounds": v,
+                "values": v,
             }
             for k, v in components.items()
         ],
@@ -119,5 +119,16 @@ def main():
     """
 
 
+def debug():
+    """
+    FOR DEBUG ONLY. 
+    """
+    components = _make_parameters(_get_photosensitizers('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_all.json'), 
+                                  _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
+    objectives = _make_objectives()
+    for k,v in components.items():
+        print(k, len(v), type(v), v[0])
+
+
 if __name__ == '__main__':
-    main()
+    debug()
