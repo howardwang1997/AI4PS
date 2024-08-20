@@ -26,13 +26,13 @@ def _make_objectives():
 
 def _get_photosensitizers(smiles_path=os.path.join(CODE_PATH, 'data', 'decoded_all.json')):
     with open(smiles_path, 'r') as f:
-        smiles = json.load(smiles_path)
+        smiles = json.load(f)
     return smiles
 
 
 def _get_solvents(smiles_path=os.path.join(CODE_PATH, 'data', 'solvents_all.json')):
     with open(smiles_path, 'r') as f:
-        smiles = json.load(smiles_path)
+        smiles = json.load(f)
     return smiles
 
 
@@ -103,9 +103,11 @@ def screen(components: dict,
 
 
 def main():
-    components = _make_parameters(_get_photosensitizers(), _get_solvents())
+    components = _make_parameters(_get_photosensitizers('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_all.json'), 
+                                  _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
     objectives = _make_objectives()
-    predictor = _get_predictor()
+    predictor = _get_predictor('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_rg_3_checkpoint.pt',
+                               '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt')
     experiment = screen(components=components,
                         objectives=objectives,
                         predictor=predictor,

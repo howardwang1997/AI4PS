@@ -6,10 +6,10 @@ from matplotlib import pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from ..GNN.make_checkpoint import make_checkpoint
-from ..GNN.data import MoleculesDataset
-from ..GNN.gnn_utils import dataset_converter
-from ..GNN.train import Trainer
+from GNN.make_checkpoint import make_checkpoint
+from GNN.data import MoleculesDataset
+from GNN.gnn_utils import dataset_converter
+from GNN.train import Trainer
 
 
 class BayesianPredictor:

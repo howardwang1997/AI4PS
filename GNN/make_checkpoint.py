@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from model.NN import SolutionNet
-from model.bert_transformer import TransformerConvLayer
+from .model.NN import SolutionNet
+from .model.bert_transformer import TransformerConvLayer
 
 
 def make_checkpoint(checkpoint0, checkpoint1, n_conv=3, n_fc=1, n_gt=0):
