@@ -1,3 +1,7 @@
+import json
+import os
+from os.path import dirname as up
+
 import torch
 from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.plot.pareto_utils import compute_posterior_pareto_frontier
@@ -5,6 +9,8 @@ from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
 
 from trainer import BayesianPredictor
+
+CODE_PATH = up(up(os.path.abspath(__file__)))
 
 
 def _make_parameters(photosensitizers, solvents):
@@ -18,22 +24,31 @@ def _make_objectives():
     }
 
 
-def _get_photosensitizers(smiles=['']):
-    """
-    NEED IMPLEMENTATION, read data
-    """
+def _get_photosensitizers(smiles_path=os.path.join(CODE_PATH, 'data', 'decoded_all.json')):
+    with open(smiles_path, 'r') as f:
+        smiles = json.load(smiles_path)
     return smiles
 
 
-def _get_solvents(smiles=['']):
-    """
-    NEED IMPLEMENTATION, read data
-    """
+def _get_solvents(smiles_path=os.path.join(CODE_PATH, 'data', 'solvents_all.json')):
+    with open(smiles_path, 'r') as f:
+        smiles = json.load(smiles_path)
     return smiles
+
+
+def _get_predictor(checkpoint0, checkpoint1):
+    predictor = BayesianPredictor(checkpoint0, checkpoint1)
+    return predictor
 
 
 def evaluate(parameters, predictor):
-    soqy, absorption = predictor.predict(parameters)[0].item(), predictor.predict(parameters)[1].item()
+    """
+    parameters: check format
+    """
+    print(parameters) # debug
+
+    pred = predictor.predict(parameters)
+    soqy, absorption = pred[0].item(), pred[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
     results = {"phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
@@ -46,7 +61,7 @@ def plot_frontier(frontier):
 
 def screen(components: dict,
            objectives: dict,
-           predictor,
+           predictor: BayesianPredictor,
            iterations: int = 100,
            plot: bool = False,
            num_point: int = 20):
@@ -90,15 +105,16 @@ def screen(components: dict,
 def main():
     components = _make_parameters(_get_photosensitizers(), _get_solvents())
     objectives = _make_objectives()
-    predictor = BayesianPredictor(checkpoint0='',
-                                  checkpoint1='',
-                                  device='cpu')
+    predictor = _get_predictor()
     experiment = screen(components=components,
                         objectives=objectives,
                         predictor=predictor,
                         iterations=50,
                         plot=True)
-#     save
+    # save
+    """
+    NEED IMPLEMENTATION
+    """
 
 
 if __name__ == '__main__':
