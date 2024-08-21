@@ -46,8 +46,9 @@ def evaluate(parameters, predictor):
     parameters: check format
     """
     print(parameters) # debug
+    parameters_conversion = [[parameters['photosensitizer'], parameters['solvent']]]
 
-    pred = predictor.predict(parameters)
+    pred = predictor.predict(parameters_conversion)
     soqy, absorption = pred[0].item(), pred[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
@@ -123,6 +124,7 @@ def debug():
     """
     FOR DEBUG ONLY. 
     """
+    # done
     components = _make_parameters(_get_photosensitizers('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_all.json'), 
                                   _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
     objectives = _make_objectives()
@@ -131,4 +133,4 @@ def debug():
 
 
 if __name__ == '__main__':
-    debug()
+    main()

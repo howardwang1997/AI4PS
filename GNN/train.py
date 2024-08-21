@@ -130,7 +130,7 @@ class Trainer():
 
                 data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
                 output = self.model(data_batch).cpu()
-                target = data[-1]
+                target = torch.tensor(data[-1]).reshape(-1)
 
                 self.batch_time.update(time.time() - end)
                 end = time.time()
