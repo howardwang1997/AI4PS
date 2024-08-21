@@ -116,7 +116,7 @@ class Trainer():
         self.save_state_dict()
         self.model.cuda()
 
-    def predict(self, test_loader):
+    def predict(self, test_loader, verbose=True):
         self.model.eval()
 
         outputs = torch.Tensor()
@@ -138,16 +138,19 @@ class Trainer():
                 outputs = torch.cat((outputs, output), dim=0)
                 targets = torch.cat((targets, target), dim=0)
 
-        if self.classification:
-            auc = roc_auc_score(targets, outputs>0)
-            f1 = f1_score(targets, outputs>0)
-            print('%s VALIDATION: ROC_AUC_SCORE= %.4f, F1_SCORE= %.4f' % (self.name, float(auc), float(f1)))
-            metrics = (auc, f1)
-        else:
-            mae = L1Loss()(outputs, targets)
-            rmse = sqrt(MSELoss()(outputs, targets))
-            print('%s VALIDATION: MAE_SCORE= %.4f, RMSE_SCORE= %.4f' % (self.name, float(mae), float(rmse)))
-            metrics = (mae, rmse)
+        if verbose:
+            if self.classification:
+                auc = roc_auc_score(targets, outputs>0)
+                f1 = f1_score(targets, outputs>0)
+                print('%s VALIDATION: ROC_AUC_SCORE= %.4f, F1_SCORE= %.4f' % (self.name, float(auc), float(f1)))
+                metrics = (auc, f1)
+            else:
+                mae = L1Loss()(outputs, targets)
+                rmse = sqrt(MSELoss()(outputs, targets))
+                print('%s VALIDATION: MAE_SCORE= %.4f, RMSE_SCORE= %.4f' % (self.name, float(mae), float(rmse)))
+                metrics = (mae, rmse)
+        else: 
+            metrics = None
 
         return outputs, metrics
 

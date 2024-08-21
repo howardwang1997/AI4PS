@@ -65,8 +65,8 @@ class BayesianPredictor:
         with torch.no_grad():
             trainer_soqy = Trainer(self.model_soqy, name='soqy' , classification=False)
             trainer_abs = Trainer(self.model_abs, name='abs' , classification=False)
-            pred_soqy, _ = trainer_soqy.predict(test_loader=td)
-            pred_abs, _ = trainer_abs.predict(test_loader=td)
+            pred_soqy, _ = trainer_soqy.predict(test_loader=td, verbose=False)
+            pred_abs, _ = trainer_abs.predict(test_loader=td, verbose=False)
 
             # soqy = self.model_soqy(test_inputs).reshape(-1)
             # absorption = self.model_abs(test_inputs).reshape(-1)
