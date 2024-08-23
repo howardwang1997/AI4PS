@@ -205,7 +205,8 @@ def manual_screen(components: dict,
 
 def main():
     components = _make_parameters(_get_photosensitizers('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_all.json'), 
-                                  _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
+                                #   _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
+                                  ['O'])
     objectives = _make_objectives()
     predictor = _get_predictor('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_rg_3_checkpoint.pt',
                                '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt')
