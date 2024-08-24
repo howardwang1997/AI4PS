@@ -7,17 +7,17 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('../data/dataset_close_5.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo1.json') as f:
         d = json.load(f)
     data = d['soqy']
     all_data = []
     for i in range(len(data)):
         d = data[i]
         try:
-            mol = Chem.MolFromSmiles(d[0])
-            sol = Chem.MolFromSmiles(d[1])
+            mol = Chem.MolFromSmiles(d[1])
+            sol = Chem.MolFromSmiles(d[2])
             if mol and sol:
-                if '*' in d[0]:
+                if '*' in d[1]:
                     print(f'MOLECULE ERROR in soqy {i}')
                     continue
                 else:
@@ -117,8 +117,7 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
 
-
-    train_inputs, train_sols, train_outs = dataset_converter(train_set)
+    train_names, train_inputs, train_sols, train_outs = dataset_converter(train_set)
 
     if epochs == -1:
         if len(train_outs) < 2000:
@@ -151,6 +150,7 @@ if __name__ == '__main__':
                         atom_vocab=atom_vocab,
                         inputs=train_inputs,
                         solvents=train_sols,
+                        names=train_names,
                         outputs=train_outs)
     module = nn.ModuleList([TransformerConvLayer(128, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
             nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
@@ -168,11 +168,12 @@ if __name__ == '__main__':
 
     # predict
     # test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
-    test_inputs, test_sols, test_outs = dataset_converter(val_set)
+    test_names, test_inputs, test_sols, test_outs = dataset_converter(val_set)
     td = MoleculesDataset(root='/mnt/bn/ai4s-hl/bamboo/pyscf_data/hongyi/ps/soqy',
                         atom_vocab=atom_vocab,
                         inputs=test_inputs,
                         solvents=test_sols,
+                        names=test_names,
                         outputs=test_outs)
     test_loader = DataLoader(td, batch_size=2, shuffle=False, collate_fn=cd.collate_line_graph, pin_memory=True, pin_memory_device='cuda')
 

@@ -17,18 +17,20 @@ def split(dataset: list, val_ratio=0.2, seed=42, fold=0):
 
 
 def dataset_converter(dataset):
-    solution = len(dataset[0]) == 3
+    solution = len(dataset[0]) == 4
 
     if solution:
-        mols, sols, outs = [], [], []
+        names, mols, sols, outs = [], [], [], []
         for data in dataset:
-            mols.append(data[0])
-            sols.append(data[1])
-            outs.append(data[2])
-        return mols, sols, outs
+            names.append(data[0])
+            mols.append(data[1])
+            sols.append(data[2])
+            outs.append(data[3])
+        return names, mols, sols, outs
     else:
         mols, outs = [], []
         for data in dataset:
-            mols.append(data[0])
-            outs.append(data[1])
-        return mols, outs
+            names.append(data[0])
+            mols.append(data[1])
+            outs.append(data[2])
+        return names, mols, outs

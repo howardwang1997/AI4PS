@@ -81,23 +81,30 @@ class MoleculeDataset(torch.utils.data.Dataset):
 
 
 class MoleculesDataset(MoleculeDataset):
-    def __init__(self, atom_vocab, inputs, solvents, outputs, root='molecule_dataset', embedded=False):
+    def __init__(self, atom_vocab, inputs, solvents, outputs, names=None, root='molecule_dataset', embedded=False):
         super().__init__(atom_vocab, inputs, outputs, root, embedded)
         self.solvents = solvents
+        self.names = names
+        self.named = False
+        if names:
+            self.named = True
 
     def process(self, name, mol, label):
         mol, sol = mol
         g, lg = mol2dglgraph(mol, self.atom_vocab)
         gs, lgs = mol2dglgraph(sol, self.atom_vocab)
-        joblib.dump((g, lg, gs, lgs, label), '%s%s.jbl' % (self.root, name))
-        return g, lg, gs, lgs, label
+        joblib.dump((g, lg, gs, lgs, label, name), '%s%s.jbl' % (self.root, name))
+        return g, lg, gs, lgs, label, name
 
     def __getitem__(self, idx):
         mol = self.inputs[idx]
         label = self.outputs[idx]
         sol = self.solvents[idx]
-        hash_obj = hashlib.sha256(f'{mol}_{sol}'.encode('ascii'))
-        name = hash_obj.hexdigest()
+        if not self.named:
+            hash_obj = hashlib.sha256(f'{mol}_{sol}'.encode('ascii'))
+            name = hash_obj.hexdigest()
+        else:
+            name = self.names[idx]
 
         try:
             item = self.dict_graph[name]
@@ -108,7 +115,7 @@ class MoleculesDataset(MoleculeDataset):
                 item = self.process(name, (mol, sol), label)
             self.dict_graph[name] = item
 
-        return item
+        return item[:-1]
 
     @staticmethod
     def collate_line_graph(
