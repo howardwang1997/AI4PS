@@ -61,7 +61,7 @@ def get_outliers(predictions: list, targets: torch.Tensor, threshold: float = 1,
 
     for i in range(len(diff)):
         if diff[i] > threshold*mae:
-            print(f'{i} {diff[i]} {mean_predictions[i]} {targets[i]} {mae} {r2}')
+            print(f'{i} {names[i]} {diff[i]} {mean_predictions[i]} {targets[i]} {mae} {r2}')
             outliers.append(names[i])
             outliers_index.append(i)
 
@@ -69,10 +69,10 @@ def get_outliers(predictions: list, targets: torch.Tensor, threshold: float = 1,
 
 
 def main():
-    path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo0_soqy_5f_rg__fold_0_predictions.pt'
+    path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo2_soqy_5f_rg__fold_0_predictions.pt'
     all_outliers = []
     thresholds = [1.5, 1.5, 1.5, 1.5, 1.5]
-    for i in range(5):
+    for i in range(1,2):
         results = torch.load(path.replace('_fold_0_', f'_fold_{i}_'))
         all_predictions = []
         for k, v in results.items():
@@ -82,7 +82,7 @@ def main():
         outliers, outliers_index = get_outliers(all_predictions, targets, threshold=thresholds[i], names=names)
         all_outliers.extend(outliers)
     print(len(all_outliers))
-    path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo0_soqy_5f_rg__outliers.json'
+    path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo2_soqy_5f_rg__outliers.json'
     with open(path, 'w') as f:
         json.dump(all_outliers, f)
 

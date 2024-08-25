@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo2.json') as f:
         d = json.load(f)
     data = d['soqy']
     all_data = []
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--milestone2', type=int, default=-1)
     parser.add_argument('--rmtree', action='store_true')
     parser.add_argument('--fold', type=int, default=0)
-    parser.add_argument('--checkpoint0', type=str, default='/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_ens0_fold_0_checkpoint.pt')
+    parser.add_argument('--checkpoint0', type=str, default='/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo2_ens0_fold_0_checkpoint.pt')
     # parser.add_argument('--checkpoint1', type=str, default='')
     # parser.add_argument('--checkpoint2', type=str, default='')
     # parser.add_argument('--checkpoint3', type=str, default='')
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         1: args.checkpoint0.replace('ens0', 'ens1'),
         2: args.checkpoint0.replace('ens0', 'ens2'),
         3: args.checkpoint0.replace('ens0', 'ens3'),
-        # 4: args.checkpoint0.replace('ens0', 'ens4'),
+        4: args.checkpoint0.replace('ens0', 'ens4'),
     }
 
 
@@ -154,4 +154,4 @@ if __name__ == '__main__':
         all_predictions[k] = targets_p_t
 
     # save
-    torch.save(all_predictions, f'../../ai4ps_logs/predictions/rmo0_{name}_{args.remarks}_fold_{args.fold}_predictions.pt')
+    torch.save(all_predictions, f'../../ai4ps_logs/predictions/rmo2_{name}_{args.remarks}_fold_{args.fold}_predictions.pt')

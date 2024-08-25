@@ -20,9 +20,9 @@ def remove_outliers(outliers, name, dataset):
 
 
 def main():
-    dataset_path = '/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index.json'
+    dataset_path = '/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo2.json'
     name = 'soqy'
-    outliers_path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo0_soqy_5f_rg__outliers.json'
+    outliers_path = '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/predictions/rmo2_soqy_5f_rg__outliers.json'
 
     with open(outliers_path, 'r') as f:
         outliers = json.load(f)
@@ -32,7 +32,7 @@ def main():
 
     new_dataset = remove_outliers(outliers, name, dataset)
 
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo2.json', 'w') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo3.json', 'w') as f:
         json.dump(new_dataset, f)
 
 
