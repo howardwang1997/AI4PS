@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo2.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo3.json') as f:
         d = json.load(f)
     data = d['soqy']
     all_data = []
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     classification = False
     name = 'soqy_5f_rg'
-    train_set, val_set = split(data, seed=args.seed, fold=args.fold)
+    train_set, val_set = split(data, seed=args.seed, fold=args.fold, val_ratio=0.15)
 
     # hyperparameters
     atom_fea_len = args.atom_fea_len
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             epochs = 500
             grad_accum = 8
     grad_accum = 1
-    epochs = 1000
+    epochs = 500
 
     milestone2 = 99999
     if args.milestone1 > 0:
@@ -194,4 +194,4 @@ if __name__ == '__main__':
         'predictions': torch.tensor(predictions).cpu(),
         'targets': torch.tensor(test_outs).cpu()
     }
-    trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.remarks}_fold_{args.fold}_checkpoint.pt', loss, targets_p_t)
+    trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.remarks}_seed_{args.seed}_checkpoint.pt', loss, targets_p_t)
