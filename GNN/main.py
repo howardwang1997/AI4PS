@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo1.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo2.json') as f:
         d = json.load(f)
     data = d['soqy']
     all_data = []

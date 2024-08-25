@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('../data/dataset_close_5_index.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index.json') as f:
         d = json.load(f)
     data = d['soqy']
     all_data = []
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
-    args.checkpoint0.replace('fold_0_', f'fold_{args.fold}_')
+    args.checkpoint0 = args.checkpoint0.replace('fold_0_', f'fold_{args.fold}_')
     map_checkpoint = {
         0: args.checkpoint0,
         1: args.checkpoint0.replace('ens0', 'ens1'),
@@ -120,6 +120,7 @@ if __name__ == '__main__':
     atom_vocab = joblib.load('atom_vocab.jbl')
     all_predictions = {}
     for k, v in map_checkpoint.items():
+        print(v)
         module = nn.ModuleList([TransformerConvLayer(128, 32, 8, edge_dim=args.nbr_fea_len, dropout=0.0) for _ in range(args.n_conv)]), \
                 nn.ModuleList([TransformerConvLayer(args.nbr_fea_len, 24, 8, edge_dim=30, dropout=0.0) for _ in range(args.n_conv)])
         # module = None
@@ -153,4 +154,4 @@ if __name__ == '__main__':
         all_predictions[k] = targets_p_t
 
     # save
-    torch.save(all_predictions, f'../../ai4ps_logs/predictions/5_fold_{name}_{args.remarks}_fold_{args.fold}_predictions.pt')
+    torch.save(all_predictions, f'../../ai4ps_logs/predictions/rmo0_{name}_{args.remarks}_fold_{args.fold}_predictions.pt')
