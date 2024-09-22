@@ -55,7 +55,7 @@ def main():
             decoded = decoded + generate(scaffolds=[s], rep=500, noise_std=noise_std)
     decoded = list(set(decoded))
     print(f'done, {len(decoded)} decoded, time: {time.time() - st}')
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_06.json', 'w') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_07.json', 'w') as f:
         json.dump(decoded, f)
 
 if __name__ == '__main__':
