@@ -16,6 +16,8 @@ def generate(scaffolds, rep=100, noise_std=0.5):
 
     with load_model_from_directory(model_dir) as model:
         embeddings = model.encode(example_smiles)
+        # print(embeddings.shape)
+        # print(embeddings)
         noise = np.random.normal(0, noise_std, (len(scaffolds), embeddings[0].shape[-1]))
         noise = noise.astype(embeddings[0].dtype)
         noise_embedding = embeddings[0] + noise

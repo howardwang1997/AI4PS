@@ -2,19 +2,31 @@ import json
 import os
 from os.path import dirname as up
 
+import numpy as np
 import torch
 from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
+from rdkit import Chem
+from molecule_generation import load_model_from_directory
 
 from trainer import BayesianPredictor
 
 CODE_PATH = up(up(os.path.abspath(__file__)))
+DIMENSION = 512
 
 
-def _make_parameters(photosensitizers, solvents):
-    return {'photosensitizer': photosensitizers, 'solvent': solvents}
+def _make_parameters(scaffolds, dimension=DIMENSION):
+    parameters = {i: [-2, 2] for i in range(dimension)}
+    parameters['scaffolds': scaffolds]
+    return parameters
+
+
+def _make_scaffolds(path='/mlx_devbox/users/howard.wang/playground/molllm/AI4PS/data/scaffolds_v1.json'):
+    with open(path, 'r') as f:
+        scaffolds = json.load(f)
+    return scaffolds
 
 
 def _make_objectives():
@@ -31,9 +43,7 @@ def _get_photosensitizers(smiles_path=os.path.join(CODE_PATH, 'data', 'decoded_a
 
 
 def _get_solvents(smiles_path=os.path.join(CODE_PATH, 'data', 'solvents_all.json')):
-    with open(smiles_path, 'r') as f:
-        smiles = json.load(f)
-    return smiles
+    return ["O"]
 
 
 def _get_predictor(checkpoint0, checkpoint1):
@@ -41,11 +51,19 @@ def _get_predictor(checkpoint0, checkpoint1):
     return predictor
 
 
+def parameters_to_embeddings(parameters, dimension=DIMENSION):
+    embeddings = [parameters[i] for i in range(dimension)]
+    embeddings = np.array(embeddings)
+    scaffolds = parameters['scaffolds']
+
+
+
+
 def evaluate(parameters, predictor):
     """
     parameters: check format
     """
-    print(parameters) # debug
+    # print(parameters) # debug
     parameters_conversion = [[parameters['photosensitizer'], parameters['solvent']]]
 
     pred = predictor.predict(parameters_conversion)
