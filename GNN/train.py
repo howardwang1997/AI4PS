@@ -127,8 +127,10 @@ class Trainer():
             for i, data in enumerate(test_loader):
                 self.data_time.update(time.time() - end)
                 end = time.time()
-
-                data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
+                if self.cuda:
+                    data_batch = tuple([d.to(torch.device('cuda:0')) for d in data[:-1]])
+                else:
+                    data_batch = tuple([d.to(torch.device('cpu')) for d in data[:-1]])
                 output = self.model(data_batch).cpu()
                 target = torch.tensor(data[-1]).reshape(-1)
 

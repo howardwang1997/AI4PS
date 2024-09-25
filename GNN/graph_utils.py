@@ -210,6 +210,9 @@ def convert_spherical(euclidean):
         cuda = torch.cuda.is_available()
         device = euclidean.device
         if cuda:
+            # print(euclidean.device, euclidean, euclidean[0], type(euclidean[0]))
+            euclidean = euclidean.to(torch.float32)
+            # print(euclidean.cuda())
             euclidean = euclidean.cuda()
         x, y, z = euclidean[:,0], euclidean[:,1], euclidean[:,2]
         r = torch.sqrt(x**2 + y**2 + z**2)

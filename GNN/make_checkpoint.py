@@ -5,7 +5,7 @@ from .model.NN import SolutionNet
 from .model.bert_transformer import TransformerConvLayer
 
 
-def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=2, n_gt=1):
+def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=2, n_gt=1, device='gpu'):
     map_checkpoint = {
         0: checkpoint0,
         1: checkpoint1,
@@ -16,7 +16,9 @@ def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/emb
     nbr_fea_len = 42
 
     # define atom_vocab, dataset, model, trainer
-    embeddings = torch.load(embeddings_path).cuda()
+    embeddings = torch.load(embeddings_path)
+    if device == 'gpu':
+        embeddings = embeddings.cuda()
     module_0 = nn.ModuleList([TransformerConvLayer(128, 32, 8, edge_dim=42, dropout=0.0) for _ in range(n_conv)]), \
         nn.ModuleList([TransformerConvLayer(42, 24, 8, edge_dim=30, dropout=0.0) for _ in range(n_conv)])
 

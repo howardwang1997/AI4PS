@@ -126,7 +126,9 @@ class CrysToGraphNet(nn.Module):
         for idx in range(len(self.gts)):
             atom_fea = self.conv_sp(self.do_gt(self.gts[idx], atom_fea, crystal_atom_idx, nbr_fea_idx, nbr_fea))
 
-        crys_fea = tgnn.pool.global_mean_pool(atom_fea, crystal_atom_idx.cuda())
+        if torch.cuda.is_available():
+            crystal_atom_idx = crystal_atom_idx.cuda()
+        crys_fea = tgnn.pool.global_mean_pool(atom_fea, crystal_atom_idx)
         mol_embeddings = crys_fea
         if self.embed_output:
             return mol_embeddings

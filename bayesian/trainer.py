@@ -22,7 +22,7 @@ class BayesianPredictor:
         self.atom_vocab = get_atom_vocab('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
         # self.embeddings = torch.load(self.embeddings_path).to(self.device)
 
-        models = make_checkpoint(checkpoint0, checkpoint1, self.embeddings_path)
+        models = make_checkpoint(checkpoint0, checkpoint1, self.embeddings_path, device=device)
         self.model_soqy = models['model_0']
         self.model_abs = models['model_1']
         self.val_loss_soqy = models['loss_0']
@@ -63,8 +63,8 @@ class BayesianPredictor:
         td = self.get_dataloader(test_inputs)
 
         with torch.no_grad():
-            trainer_soqy = Trainer(self.model_soqy, name='soqy' , classification=False)
-            trainer_abs = Trainer(self.model_abs, name='abs' , classification=False)
+            trainer_soqy = Trainer(self.model_soqy, name='soqy' , classification=False, cuda=self.device=='gpu')
+            trainer_abs = Trainer(self.model_abs, name='abs' , classification=False, cuda=self.device=='gpu')
             pred_soqy, _ = trainer_soqy.predict(test_loader=td)
             pred_abs, _ = trainer_abs.predict(test_loader=td)
 

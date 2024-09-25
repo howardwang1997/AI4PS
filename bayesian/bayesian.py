@@ -1,6 +1,7 @@
 import json
 import os
 from os.path import dirname as up
+os.environ['CUDA_LAUNCH_BLOCKING']='1'
 
 import numpy as np
 import torch
@@ -15,12 +16,32 @@ from trainer import BayesianPredictor
 
 CODE_PATH = up(up(os.path.abspath(__file__)))
 DIMENSION = 512
+MODEL_DIR = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
+MODEL = load_model_from_directory(MODEL_DIR)
+SOLVENT = 'O'
 
 
 def _make_parameters(scaffolds, dimension=DIMENSION):
-    parameters = {i: [-2, 2] for i in range(dimension)}
-    parameters['scaffolds': scaffolds]
-    return parameters
+    parameters = {i: [-2.0, 2.0] for i in range(dimension)}
+    # parameters['scaffolds': scaffolds]
+
+    parameter_list = [
+        {
+                "name": 'scaffold',
+                "type": "choice",
+                "values": scaffolds,
+        }
+    ]
+    for k, v in parameters.items():
+        parameter_list.append(
+            {
+                "name": str(k),
+                "type": "range",
+                "bounds": v,
+            }
+        )
+
+    return parameter_list
 
 
 def _make_scaffolds(path='/mlx_devbox/users/howard.wang/playground/molllm/AI4PS/data/scaffolds_v1.json'):
@@ -47,16 +68,34 @@ def _get_solvents(smiles_path=os.path.join(CODE_PATH, 'data', 'solvents_all.json
 
 
 def _get_predictor(checkpoint0, checkpoint1):
-    predictor = BayesianPredictor(checkpoint0, checkpoint1)
+    predictor = BayesianPredictor(checkpoint0, checkpoint1, device='cpu')
     return predictor
 
 
 def parameters_to_embeddings(parameters, dimension=DIMENSION):
-    embeddings = [parameters[i] for i in range(dimension)]
+    embeddings = [parameters[str(i)] for i in range(dimension)]
     embeddings = np.array(embeddings)
-    scaffolds = parameters['scaffolds']
+    scaffold = parameters['scaffold']
+    return embeddings, scaffold
 
 
+def generate(parameters):
+    embeddings_bias, scaffold = parameters_to_embeddings(parameters)
+    # model_dir = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
+    example_smiles = [scaffold]
+    scaffolds = [scaffold]
+
+    with load_model_from_directory(MODEL_DIR) as model:
+        embeddings = model.encode(example_smiles)
+        noise = np.random.normal(0, 0.3, (len(scaffolds), DIMENSION))
+        noise = noise.astype(embeddings[0].dtype)
+        embeddings_bias = embeddings_bias.astype(embeddings[0].dtype)
+        noise_embedding = embeddings[0] + noise + embeddings_bias
+        # print(noise_embedding.shape)
+
+        # The i-th scaffold will be used when decoding the i-th latent vector.
+        decoded_scaffolds = model.decode(noise_embedding, scaffolds=scaffolds)
+    return decoded_scaffolds
 
 
 def evaluate(parameters, predictor):
@@ -64,13 +103,16 @@ def evaluate(parameters, predictor):
     parameters: check format
     """
     # print(parameters) # debug
-    parameters_conversion = [[parameters['photosensitizer'], parameters['solvent']]]
+    # parameters_conversion = [[parameters['photosensitizer'], parameters['solvent']]]
+    decoded_scaffolds = generate(parameters)
+    parameters_conversion = [[decoded_scaffolds[0], SOLVENT]]
 
     pred = predictor.predict(parameters_conversion)
     soqy, absorption = pred[0].item(), pred[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
     results = {"phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
+    print('RESULTS:', results)
     return results
 
 
@@ -78,7 +120,7 @@ def plot_frontier(frontier):
     pass
 
 
-def screen(components: dict,
+def screen(parameter_list: list,
            objectives: dict,
            predictor: BayesianPredictor,
            iterations: int = 100,
@@ -87,14 +129,7 @@ def screen(components: dict,
     ax_client = AxClient()
     ax_client.create_experiment(
         name="screen_photosensitizer_solution",
-        parameters=[
-            {
-                "name": k,
-                "type": "choice",
-                "values": v,
-            }
-            for k, v in components.items()
-        ],
+        parameters=parameter_list,
         objectives=objectives,
         overwrite_existing_experiment=True,
         is_test=True,
@@ -122,12 +157,11 @@ def screen(components: dict,
 
 
 def main():
-    components = _make_parameters(_get_photosensitizers('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_all.json'), 
-                                  _get_solvents('/mlx_devbox/users/howard.wang/playground/molllm/datasets/solvents_all.json'))
+    parameter_list = _make_parameters(_make_scaffolds())
     objectives = _make_objectives()
     predictor = _get_predictor('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_rg_3_checkpoint.pt',
                                '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt')
-    experiment = screen(components=components,
+    experiment = screen(parameter_list=parameter_list,
                         objectives=objectives,
                         predictor=predictor,
                         iterations=50,
