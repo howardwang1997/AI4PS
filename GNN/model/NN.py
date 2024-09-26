@@ -36,7 +36,7 @@ class CrysToGraphNet(nn.Module):
     """
 
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
-                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=3, n_gt=1,
+                 atom_fea_len=64, line_fea_len=30, n_conv=3, h_fea_len=128, n_fc=1, n_gt=1,
                  embeddings=None, module=None, norm=False, drop=0.0, embed_output=False):
         super(CrysToGraphNet, self).__init__()
         self.embeddings = embeddings
