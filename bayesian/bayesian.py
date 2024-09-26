@@ -87,7 +87,7 @@ def generate(parameters):
 
     with load_model_from_directory(MODEL_DIR) as model:
         embeddings = model.encode(example_smiles)
-        noise = np.random.normal(0, 0.3, (len(scaffolds), DIMENSION))
+        noise = np.random.normal(0, 0.2, (len(scaffolds), DIMENSION))
         noise = noise.astype(embeddings[0].dtype)
         embeddings_bias = embeddings_bias.astype(embeddings[0].dtype)
         noise_embedding = embeddings[0] + noise + embeddings_bias
@@ -111,7 +111,7 @@ def evaluate(parameters, predictor):
     soqy, absorption = pred[0].item(), pred[1].item()
     loss_soqy = predictor.val_loss_soqy
     loss_absorption = predictor.val_loss_abs
-    results = {"phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
+    results = {"decoded_molecule": decoded_scaffolds[0], "phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
     print('RESULTS:', results)
     return results
 
@@ -134,11 +134,16 @@ def screen(parameter_list: list,
         overwrite_existing_experiment=True,
         is_test=True,
     )
+    eval_results = []
 
     for _ in range(iterations):
         parameters, trial_index = ax_client.get_next_trial()
         # Local evaluation here can be replaced with deployment to external system.
-        ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters, predictor))
+        result = evaluate(parameters, predictor)
+        eval_results.append(result)
+        raw_data = {"phi_singlet_oxygen": result['phi_singlet_oxygen'], "max_absorption": result['max_absorption']}
+
+        ax_client.complete_trial(trial_index=trial_index, raw_data=raw_data)
 
     ax_objectives = ax_client.experiment.optimization_config.objective.objectives
     frontier = compute_posterior_pareto_frontier(
@@ -153,23 +158,30 @@ def screen(parameter_list: list,
     if plot:
         plot_frontier(frontier)
 
-    return ax_client.experiment
+    return ax_client.experiment, eval_results, frontier
 
 
 def main():
     parameter_list = _make_parameters(_make_scaffolds())
     objectives = _make_objectives()
-    predictor = _get_predictor('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_rg_3_checkpoint.pt',
+    predictor = _get_predictor('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_32_checkpoint.pt',
                                '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt')
     experiment = screen(parameter_list=parameter_list,
                         objectives=objectives,
                         predictor=predictor,
-                        iterations=50,
+                        iterations=10000,
                         plot=True)
+    experiment, results, frontier = experiment
     # save
     """
     NEED IMPLEMENTATION
     """
+    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_02.json', 'w') as f:
+        json.dump(results, f)
+    print(frontier)
+    # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
+    #     json.dump(frontier, f)
+    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_02.pt')
 
 
 def debug():
