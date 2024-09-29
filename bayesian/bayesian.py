@@ -158,7 +158,7 @@ def screen(parameter_list: list,
     if plot:
         plot_frontier(frontier)
 
-    return ax_client.experiment, eval_results, frontier
+    return ax_client, eval_results, frontier
 
 
 def main():
@@ -169,9 +169,9 @@ def main():
     experiment = screen(parameter_list=parameter_list,
                         objectives=objectives,
                         predictor=predictor,
-                        iterations=10000,
+                        iterations=1000,
                         plot=True)
-    experiment, results, frontier = experiment
+    client, results, frontier = experiment
     # save
     """
     NEED IMPLEMENTATION
@@ -182,6 +182,7 @@ def main():
     # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
     #     json.dump(frontier, f)
     torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_02.pt')
+    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_02.json')
 
 
 def debug():
