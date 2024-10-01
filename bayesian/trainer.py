@@ -14,29 +14,32 @@ from GNN.train import Trainer
 
 class BayesianPredictor:
     def __init__(self,
-                 checkpoint0,
-                 checkpoint1,
+                 checkpoints0,
+                 checkpoints1,
                  device='gpu',
                  save_path='bayesian_sd.pt'):
         self.embeddings_path = '/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/embeddings_100_cgcnn.pt'
         self.atom_vocab = get_atom_vocab('/mlx_devbox/users/howard.wang/playground/new_benchmark/CrysToGraph/CrysToGraph/config/100_vocab.jbl')
         # self.embeddings = torch.load(self.embeddings_path).to(self.device)
 
-        models = make_checkpoint(checkpoint0, checkpoint1, self.embeddings_path, device=device)
+        models = make_checkpoint(checkpoints0, checkpoints1, self.embeddings_path, device=device)
+        # modify
         self.model_soqy = models['model_0']
         self.model_abs = models['model_1']
-        self.val_loss_soqy = models['loss_0']
-        self.val_loss_abs = models['loss_1']
+        # self.val_loss_soqy = models['loss_0']
+        # self.val_loss_abs = models['loss_1']
 
         if device == 'gpu':
             self.device = torch.device("cuda:0")
         else:
             self.device = torch.device("cpu")
 
-        self.model_soqy = self.model_soqy.to(self.device)
-        self.model_abs = self.model_abs.to(self.device)
-        self.model_soqy.eval()
-        self.model_abs.eval()
+        self.model_soqy = [m.to(self.device) for m in self.model_soqy]
+        self.model_abs = [m.to(self.device) for m in self.model_abs]
+        for m in self.model_soqy:
+            m.eval()
+        for m in self.model_abs:
+            m.eval()
 
         # self.save_path = save_path
         
@@ -63,14 +66,27 @@ class BayesianPredictor:
         td = self.get_dataloader(test_inputs)
 
         with torch.no_grad():
-            trainer_soqy = Trainer(self.model_soqy, name='soqy' , classification=False, cuda=self.device=='gpu')
-            trainer_abs = Trainer(self.model_abs, name='abs' , classification=False, cuda=self.device=='gpu')
-            pred_soqy, _ = trainer_soqy.predict(test_loader=td)
-            pred_abs, _ = trainer_abs.predict(test_loader=td)
+            soqy = []
+            abs = []
+            for m in self.model_soqy:
+                trainer_soqy = Trainer(m, name='soqy', classification=False, cuda=self.device=='gpu')
+                pred_soqy, _ = trainer_soqy.predict(test_loader=td)
+                soqy.append(pred_soqy.reshape(1, -1))
+            soqy = torch.cat(soqy, dim=0).to('cpu')
 
-            # soqy = self.model_soqy(test_inputs).reshape(-1)
-            # absorption = self.model_abs(test_inputs).reshape(-1)
-            soqy = pred_soqy.reshape(-1)
-            absorption = pred_abs.reshape(-1)
-        outputs = (soqy.to("cpu"), absorption.to("cpu"))
+            for m in self.model_abs:
+                trainer_abs = Trainer(m, name='abs', classification=False, cuda=self.device=='gpu')
+                pred_abs, _ = trainer_abs.predict(test_loader=td)
+                abs.append(pred_abs.reshape(1, -1))
+            abs = torch.cat(abs, dim=0).to('cpu')
+        outputs = {
+            'soqy': soqy,
+            'soqy_mean': torch.mean(soqy, dim=0),
+            'soqy_std': torch.std(soqy, dim=0),
+            'abs': abs,
+            'abs_mean': torch.mean(abs, dim=0),
+            'abs_std': torch.std(abs, dim=0),
+        }
+
+        # outputs = (soqy.to("cpu"), absorption.to("cpu"))
         return outputs

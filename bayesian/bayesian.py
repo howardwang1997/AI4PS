@@ -108,9 +108,9 @@ def evaluate(parameters, predictor):
     parameters_conversion = [[decoded_scaffolds[0], SOLVENT]]
 
     pred = predictor.predict(parameters_conversion)
-    soqy, absorption = pred[0].item(), pred[1].item()
-    loss_soqy = predictor.val_loss_soqy
-    loss_absorption = predictor.val_loss_abs
+    soqy, absorption = pred['soqy_mean'].items(), pred['abs_mean'].items()
+    loss_soqy = pred['soqy_std'].items()
+    loss_absorption = pred['abs_std'].items()
     results = {"decoded_molecule": decoded_scaffolds[0], "phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
     print('RESULTS:', results)
     return results
