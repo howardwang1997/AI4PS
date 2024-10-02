@@ -10,6 +10,8 @@ from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
 from rdkit import Chem
+from rdkit.Chem.Crippen import MolLogP
+from rdkit.Contrib.SA_Score import sascorer
 from molecule_generation import load_model_from_directory
 
 from trainer import BayesianPredictor
@@ -53,7 +55,9 @@ def _make_scaffolds(path='/mlx_devbox/users/howard.wang/playground/molllm/AI4PS/
 def _make_objectives():
     return {
         'phi_singlet_oxygen': ObjectiveProperties(minimize=False, threshold=torch.tensor(0.)),
-        'max_absorption': ObjectiveProperties(minimize=False, threshold=torch.tensor(300.))
+        'max_absorption': ObjectiveProperties(minimize=False, threshold=torch.tensor(300.)),
+        'log_p': ObjectiveProperties(minimize=False, threshold=torch.tensor(0.)),
+        'sas': ObjectiveProperties(minimize=False, threshold=torch.tensor(1.)),
     }
 
 
@@ -111,7 +115,18 @@ def evaluate(parameters, predictor):
     soqy, absorption = pred['soqy_mean'].items(), pred['abs_mean'].items()
     loss_soqy = pred['soqy_std'].items()
     loss_absorption = pred['abs_std'].items()
-    results = {"decoded_molecule": decoded_scaffolds[0], "phi_singlet_oxygen": (soqy, loss_soqy), "max_absorption": (absorption, loss_absorption)}
+
+    # calculation of logP and SAS
+    mol = Chem.MolFromSmiles(decoded_scaffolds[0])
+    log_p = MolLogP(mol)
+    sas = sascorer.calculateScore(mol)
+
+    results = {
+        "decoded_molecule": decoded_scaffolds[0], "phi_singlet_oxygen": (soqy, loss_soqy),
+        "max_absorption": (absorption, loss_absorption),
+        "log_p": (log_p, 0),
+        "sas": (sas, 0)
+    }
     print('RESULTS:', results)
     return results
 
