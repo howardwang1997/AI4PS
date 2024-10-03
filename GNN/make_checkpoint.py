@@ -5,7 +5,7 @@ from .model.NN import SolutionNet
 from .model.bert_transformer import TransformerConvLayer
 
 
-def make_checkpoint(checkpoints0, checkpoints1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=1, n_gt=1, device='gpu'):
+def make_checkpoint(checkpoints0:list, checkpoints1:list, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=1, n_gt=1, device='gpu'):
     map_checkpoint = {
         0: checkpoints0,
         1: checkpoints1,
@@ -38,7 +38,7 @@ def make_checkpoint(checkpoints0, checkpoints1, embeddings_path='../GNN/config/e
 
     ctgns_1 = [SolutionNet(atom_fea_len, nbr_fea_len,
                             embeddings=embeddings, h_fea_len=128, n_conv=n_conv,
-                            n_fc=n_fc, n_gt=n_gt, module=module, norm=True, drop=0) for _ in range(n_ensembles[1])]
+                            n_fc=2, n_gt=n_gt, module=module, norm=True, drop=0) for _ in range(n_ensembles[1])]
 
     for i in range(n_ensembles[1]):
         ctgns_1[i].load_state_dict(ckpt_1[i]['state_dict'], strict=True)

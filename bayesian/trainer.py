@@ -24,8 +24,8 @@ class BayesianPredictor:
 
         models = make_checkpoint(checkpoints0, checkpoints1, self.embeddings_path, device=device)
         # modify
-        self.model_soqy = models['model_0']
-        self.model_abs = models['model_1']
+        self.model_soqy = models['models_0']
+        self.model_abs = models['models_1']
         # self.val_loss_soqy = models['loss_0']
         # self.val_loss_abs = models['loss_1']
 
