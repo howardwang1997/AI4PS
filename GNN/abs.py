@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # for debug
     with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo3.json') as f:
         d = json.load(f)
-    data = d['soqy']
+    data = d['absorption']
     all_data = []
     for i in range(len(data)):
         d = data[i]
@@ -18,14 +18,14 @@ if __name__ == '__main__':
             sol = Chem.MolFromSmiles(d[2])
             if mol and sol:
                 if '*' in d[1]:
-                    print(f'MOLECULE ERROR in soqy {i}')
+                    print(f'MOLECULE ERROR in abs {i}')
                     continue
                 else:
                     all_data.append(d)
             else:
-                print(f'MOLECULE ERROR in soqy {i}')
+                print(f'MOLECULE ERROR in abs {i}')
         except TypeError:
-                print(f'SOLVENT ERROR in soqy {i}, {d}')
+                print(f'SOLVENT ERROR in abs {i}, {d}')
             # print(d[0])
             # print(d[1])
     print(len(data), len(all_data))
@@ -89,8 +89,8 @@ if __name__ == '__main__':
     from gnn_utils import dataset_converter, split
 
     classification = False
-    name = 'soqy_final_rg'
-    train_set, val_set = split(data, seed=args.seed, fold=args.fold, val_ratio=0.1)
+    name = 'abs_final_rg'
+    train_set, val_set = split(data, seed=args.seed, fold=args.fold, val_ratio=0.15)
 
     # hyperparameters
     atom_fea_len = args.atom_fea_len
