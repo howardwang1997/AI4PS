@@ -60,9 +60,11 @@ def main():
     with open(args.file) as f:
         files_data = json.load(f)
 
+    new = []
     if args.to_smiles:
         new = bayesian_to_generated(args.files)
     elif args.clean:
         new = remove_duplicates(original_data, files_data)
 
-    # to be done
+    with open(args.save) as f:
+        json.dump(new, f)
