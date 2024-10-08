@@ -11,7 +11,7 @@ from rdkit.Contrib.SA_Score import sascorer
 
 import sys
 sys.path.append('..')
-from ..bayesian.trainer import BayesianPredictor
+from bayesian.trainer import BayesianPredictor
 
 
 def check_smiles_list(molecules):
@@ -21,8 +21,9 @@ def check_smiles_list(molecules):
 
 def remove_duplicates(original, new):
     is_smiles_list = check_smiles_list(new)
+    # print(original[0])
 
-    original = [Chem.MolToSmiles(Chem.MolFromSmiles(s)) for s in original]
+    original = [Chem.MolToSmiles(Chem.MolFromSmiles(s[1])) for s in original]
 
     removed = []
     for n in new:
@@ -30,10 +31,11 @@ def remove_duplicates(original, new):
             n_new = n
         else:
             n_new = n['decoded_molecule']
-        st_n = Chem.MolToSmiles((Chem.MolFromSmiles(n)))
+        st_n = Chem.MolToSmiles((Chem.MolFromSmiles(n_new)))
         if st_n not in original:
             removed.append(n)
 
+    print(f'Removed {len(original) - len(removed)} duplicates from {len(original)} to {len(removed)}.')
     return removed
 
 
@@ -57,6 +59,13 @@ def main():
     if args.original:
         with open(args.original) as f:
             original_data = json.load(f)
+        if type(original_data) is dict:
+            if 'all_ps' in original_data.keys():
+                original_data = original_data['all_ps']
+            elif 'all_smiles' in original_data.keys():
+                original_data = original_data['all_smiles']
+            else:
+                raise KeyError('original dict does not contain all_ps or all_smiles')
     with open(args.file) as f:
         files_data = json.load(f)
 
@@ -66,5 +75,8 @@ def main():
     elif args.clean:
         new = remove_duplicates(original_data, files_data)
 
-    with open(args.save) as f:
+    with open(args.save, 'w') as f:
         json.dump(new, f)
+
+if __name__ == '__main__':
+    main()
