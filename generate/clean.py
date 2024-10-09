@@ -12,6 +12,7 @@ from rdkit.Contrib.SA_Score import sascorer
 import sys
 sys.path.append('..')
 from bayesian.trainer import BayesianPredictor
+from bayesian.bayesian import _get_predictor
 
 
 def check_smiles_list(molecules):
@@ -44,7 +45,44 @@ def bayesian_to_generated(bayesian_list):
 
 
 def generated_to_bayesian(generate_list):
-    pass
+    checkpoints0 = [
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_32_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_42_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_52_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_62_checkpoint.pt',
+    ]
+    checkpoints1 = [
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_1_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_2_checkpoint.pt',
+        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_3_checkpoint.pt',
+    ]
+    predictor = _get_predictor(checkpoints0[0], checkpoints1[0])
+
+    is_smiles_list = check_smiles_list(generate_list)
+
+    predicted = []
+    for data in generate_list:
+        add_data = {}
+        if is_smiles_list:
+            m = data
+            pred = predictor.predict([[data, 'O']])
+            soqy, absorption = pred[0].item(), pred[1].item()
+            add_data['max_absorption'] = absorption
+            add_data['phi_singlet_oxygen'] = soqy
+        else:
+            m = ['decoded_molecule']
+            add_data['max_absorption'] = data['max_absorption']
+            add_data['phi_singlet_oxygen'] = data['phi_singlet_oxygen']
+        add_data['decoded_molecule'] = m
+        m = Chem.MolFromSmiles(m)
+        sas = sascorer.calculateScore(m)
+        logp = MolLogP(m)
+        add_data['log_p'] = logp
+        add_data['sas'] = sas
+        predicted.append(add_data)
+
+    return predicted
 
 
 def main():
@@ -77,6 +115,7 @@ def main():
 
     with open(args.save, 'w') as f:
         json.dump(new, f)
+
 
 if __name__ == '__main__':
     main()
