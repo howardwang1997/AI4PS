@@ -8,7 +8,9 @@ from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
 
-from trainer import BayesianPredictor
+import sys
+sys.path.append('..')
+from bayesian.trainer import BayesianPredictor
 
 CODE_PATH = up(up(os.path.abspath(__file__)))
 
