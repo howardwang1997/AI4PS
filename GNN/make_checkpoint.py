@@ -5,7 +5,8 @@ from .model.NN import SolutionNet
 from .model.bert_transformer import TransformerConvLayer
 
 
-def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', n_conv=0, n_fc=2, n_gt=1):
+def make_checkpoint(checkpoint0, checkpoint1, embeddings_path='../GNN/config/embeddings_100_cgcnn.pt', 
+                    n_conv=0, n_fc=1, n_gt=1):
     map_checkpoint = {
         0: checkpoint0,
         1: checkpoint1,
