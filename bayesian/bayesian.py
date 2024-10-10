@@ -14,7 +14,11 @@ from rdkit.Chem.Crippen import MolLogP
 from rdkit.Contrib.SA_Score import sascorer
 from molecule_generation import load_model_from_directory
 
-from trainer import BayesianPredictor
+import sys
+sys.path.append('..')
+from bayesian.trainer import BayesianPredictor
+
+CODE_PATH = up(up(os.path.abspath(__file__)))
 
 CODE_PATH = up(up(os.path.abspath(__file__)))
 DIMENSION = 512
@@ -102,6 +106,11 @@ def generate(parameters):
     return decoded_scaffolds
 
 
+def _get_predictor(checkpoint0, checkpoint1):
+    predictor = BayesianPredictor(checkpoint0, checkpoint1)
+    return predictor
+
+
 def evaluate(parameters, predictor):
     """
     parameters: check format
@@ -135,7 +144,50 @@ def plot_frontier(frontier):
     pass
 
 
-def screen(parameter_list: list,
+def save_experiment_and_frontier(experiment, frontier, path='pareto_frontier.json', manual=False, components=None):
+    raw_param_dicts = frontier.param_dicts
+    if manual:
+        def calculate_trial_index(components, parameters):
+            return parameters['photosensitizer'] * len(components['solvent']) + parameters['solvent']
+
+        param_dicts = []
+        trial_dicts = []
+        for i in range(len(raw_param_dicts)):
+            param_data = {
+                'photosensitizer': components['photosensitizer'][raw_param_dicts[i]['photosensitizer']],
+                'solvent': components['solvent'][raw_param_dicts[i]['solvent']],
+                }
+            param_dicts.append(param_data)
+            trial_data = experiment.fetch_trials_data_results(trial_indices=[calculate_trial_index(components, raw_param_dicts[i])],
+                                                              metrics=experiment.metrics.values()).values()
+            trial_data = list(trial_data)[0]
+
+            # print(type(trial_data['phi_singlet_oxygen']), trial_data['phi_singlet_oxygen'].value.df)
+            trial_data = {
+                'phi_singlet_oxygen': trial_data['phi_singlet_oxygen'].value.df['mean'][0], 
+                'max_absorption': trial_data['max_absorption'].value.df['mean'][0]
+            }
+            trial_dicts.append(trial_data)
+    else:
+        param_dicts = raw_param_dicts
+        for i in range(len(raw_param_dicts)):
+            trial_data = experiment.fetch_trials_data_results(trial_indices=[calculate_trial_index(components, raw_param_dicts[i])],
+                                                              metrics=experiment.metrics.values()).values()
+            trial_data = list(trial_data)[0]
+
+            trial_data = {
+                'phi_singlet_oxygen': trial_data['phi_singlet_oxygen'].value.df['mean'][0], 
+                'max_absorption': trial_data['max_absorption'].value.df['mean'][0]
+            }
+            trial_dicts.append(trial_data)
+        raise NotImplementedError('trial data not implemented')
+
+    # print(trial_dicts, param_dicts)
+    with open(path, 'w') as f:
+        json.dump({'param_dicts': param_dicts, 'trial_dicts': trial_dicts}, f)
+
+
+def screen(parameter_list: dict,
            objectives: dict,
            predictor: BayesianPredictor,
            iterations: int = 100,
@@ -174,6 +226,63 @@ def screen(parameter_list: list,
         plot_frontier(frontier)
 
     return ax_client, eval_results, frontier
+
+
+def manual_screen(components: dict,
+                  objectives: dict,
+                  predictor: BayesianPredictor,
+                  iterations: int = 100,
+                  plot: bool = False,
+                  num_point: int = 20):
+    ax_client = AxClient()
+    ax_client.create_experiment(
+        name="screen_photosensitizer_solution",
+        parameters=[
+            {
+                "name": k,
+                "type": "range",
+                "bounds": [-1, len(v)+1],
+            }
+            for k, v in components.items()
+        ],
+        objectives=objectives,
+        overwrite_existing_experiment=True,
+        is_test=True,
+    )
+
+    trial_index = 0
+    # manually screen photosensitizer and solvent
+    for i in range(len(components['photosensitizer'])):
+        for j in range(len(components['solvent'])):
+            parameters_trial = [{
+                'photosensitizer': i,
+                'solvent': j,
+            }]
+            parameters_eval = {
+                'photosensitizer': components['photosensitizer'][i],
+                'solvent': components['solvent'][j],
+            }
+            print(parameters_trial)
+            ax_client.experiment.attach_trial(parameters_trial)
+            # Local evaluation here can be replaced with deployment to external system.
+            ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters_eval, predictor))
+            trial_index += 1
+
+    ax_objectives = ax_client.experiment.optimization_config.objective.objectives
+    frontier = compute_posterior_pareto_frontier(
+        experiment=ax_client.experiment,
+        data=ax_client.experiment.fetch_data(),
+        primary_objective=ax_objectives[1].metric,
+        secondary_objective=ax_objectives[0].metric,
+        absolute_metrics=['phi_singlet_oxygen', 'max_absorption'],
+        num_points=num_point,
+    )
+
+    if plot:
+        plot_frontier(frontier)
+        save_experiment_and_frontier(ax_client.experiment, frontier, manual=True, components=components, path='/mlx_devbox/users/howard.wang/playground/molllm/datasets/pareto_frontier.json')
+
+    return ax_client.experiment
 
 
 def main():
