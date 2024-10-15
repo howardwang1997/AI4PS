@@ -9,18 +9,24 @@ from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
+
+from botorch.acquisition.multi_objective.logei import qLogNoisyExpectedHypervolumeImprovement as qLNEHVI
+from ax.models.torch.botorch_modular.surrogate import Surrogate
+from ax.modelbridge.generation_strategy import GenerationStep, GenerationStrategy
+from ax.modelbridge.registry import ModelRegistryBase, Models
+from botorch.models.gp_regression import SingleTaskGP
+
 from rdkit import Chem
 from rdkit.Chem.Crippen import MolLogP
 from rdkit.Contrib.SA_Score import sascorer
 from molecule_generation import load_model_from_directory
 
+CODE_PATH = up(up(os.path.abspath(__file__)))
 import sys
-sys.path.append('..')
-from bayesian.trainer import BayesianPredictor
+sys.path.append(CODE_PATH)
 
-CODE_PATH = up(up(os.path.abspath(__file__)))
+from trainer import BayesianPredictor
 
-CODE_PATH = up(up(os.path.abspath(__file__)))
 DIMENSION = 512
 MODEL_DIR = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
 MODEL = load_model_from_directory(MODEL_DIR)
@@ -106,11 +112,6 @@ def generate(parameters):
     return decoded_scaffolds
 
 
-def _get_predictor(checkpoint0, checkpoint1):
-    predictor = BayesianPredictor(checkpoint0, checkpoint1)
-    return predictor
-
-
 def evaluate(parameters, predictor):
     """
     parameters: check format
@@ -121,9 +122,9 @@ def evaluate(parameters, predictor):
     parameters_conversion = [[decoded_scaffolds[0], SOLVENT]]
 
     pred = predictor.predict(parameters_conversion)
-    soqy, absorption = pred['soqy_mean'].items(), pred['abs_mean'].items()
-    loss_soqy = pred['soqy_std'].items()
-    loss_absorption = pred['abs_std'].items()
+    soqy, absorption = pred['soqy_mean'].item(), pred['abs_mean'].item()
+    loss_soqy = pred['soqy_std'].item()
+    loss_absorption = pred['abs_std'].item()
 
     # calculation of logP and SAS
     mol = Chem.MolFromSmiles(decoded_scaffolds[0])
@@ -192,8 +193,36 @@ def screen(parameter_list: dict,
            predictor: BayesianPredictor,
            iterations: int = 100,
            plot: bool = False,
-           num_point: int = 20):
-    ax_client = AxClient()
+           num_point: int = 20,
+           calculate_frontier=True,
+           seed=114514):
+
+    gs = GenerationStrategy(
+            steps=[
+                # 1. Initialization step (does not require pre-existing data and is well-suited for
+                # initial sampling of the search space)
+                GenerationStep(
+                    model=Models.SOBOL,
+                    num_trials=20,  # How many trials should be produced from this generation step
+                    min_trials_observed=15,  # How many trials need to be completed to move to next model
+                    max_parallelism=5,  # Max parallelism for this step
+                    model_kwargs={"seed": seed},  # Any kwargs you want passed into the model
+                    model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
+                ),
+                # 2. Bayesian optimization step (requires data obtained from previous phase and learns
+                # from all data available at the time of each new candidate generation call)
+                GenerationStep(
+                    model=Models.BOTORCH_MODULAR,
+                    num_trials=-1,  # No limitation on how many trials should be produced from this step
+                    max_parallelism=3,  # Parallelism limit for this step, often lower than for Sobol
+                    model_kwargs={
+                        # "surrogate": Surrogate(SingleTaskGP),
+                        "botorch_acqf_class": qLNEHVI,
+                    }
+                ),
+            ]
+        )
+    ax_client = AxClient(generation_strategy=gs)
     ax_client.create_experiment(
         name="screen_photosensitizer_solution",
         parameters=parameter_list,
@@ -202,6 +231,7 @@ def screen(parameter_list: dict,
         is_test=True,
     )
     eval_results = []
+    print(ax_client._generation_strategy)
 
     for _ in range(iterations):
         parameters, trial_index = ax_client.get_next_trial()
@@ -213,17 +243,19 @@ def screen(parameter_list: dict,
         ax_client.complete_trial(trial_index=trial_index, raw_data=raw_data)
 
     ax_objectives = ax_client.experiment.optimization_config.objective.objectives
-    frontier = compute_posterior_pareto_frontier(
-        experiment=ax_client.experiment,
-        data=ax_client.experiment.fetch_data(),
-        primary_objective=ax_objectives[1].metric,
-        secondary_objective=ax_objectives[0].metric,
-        absolute_metrics=['phi_singlet_oxygen', 'max_absorption'],
-        num_points=num_point,
-    )
+    frontier = None
+    if calculate_frontier:
+        frontier = compute_posterior_pareto_frontier(
+            experiment=ax_client.experiment,
+            data=ax_client.experiment.fetch_data(),
+            primary_objective=ax_objectives[1].metric,
+            secondary_objective=ax_objectives[0].metric,
+            absolute_metrics=['phi_singlet_oxygen', 'max_absorption'],
+            num_points=num_point,
+        )
 
-    if plot:
-        plot_frontier(frontier)
+        if plot:
+            plot_frontier(frontier)
 
     return ax_client, eval_results, frontier
 
@@ -290,36 +322,39 @@ def main():
     objectives = _make_objectives()
     checkpoints0 = [
             '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_0_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_1_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_2_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_3_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_4_seed_42_fold_0_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_1_seed_42_fold_1_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_2_seed_42_fold_2_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_3_seed_42_fold_3_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_4_seed_42_fold_4_checkpoint.pt',
         ]
     checkpoints1 = [
             '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_0_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_1_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_2_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_3_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_4_seed_42_fold_0_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_1_seed_42_fold_1_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_2_seed_42_fold_2_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_3_seed_42_fold_3_checkpoint.pt',
+            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_4_seed_42_fold_4_checkpoint.pt',
         ]
     predictor = _get_predictor(checkpoints0, checkpoints1)
-    experiment = screen(parameter_list=parameter_list,
-                        objectives=objectives,
-                        predictor=predictor,
-                        iterations=1000,
-                        plot=True)
-    client, results, frontier = experiment
-    # save
-    """
-    NEED IMPLEMENTATION
-    """
-    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_04.json', 'w') as f:
-        json.dump(results, f)
-    print(frontier)
-    # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
-    #     json.dump(frontier, f)
-    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_04.pt')
-    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_04.json')
+    for i in range(20, 26):
+        experiment = screen(parameter_list=parameter_list,
+                            objectives=objectives,
+                            predictor=predictor,
+                            iterations=500,
+                            plot=True,
+                            calculate_frontier=False,
+                            seed=i)
+        client, results, frontier = experiment
+        # save
+        """
+        NEED IMPLEMENTATION
+        """
+        with open(f'/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_{str(i).rjust(2 ,"0")}.json', 'w') as f:
+            json.dump(results, f)
+        print(frontier)
+        # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
+        #     json.dump(frontier, f)
+        torch.save(frontier, f'/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_{str(i).rjust(2 ,"0")}.pt')
+        client.save_to_json_file(filepath=f'/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_{str(i).rjust(2 ,"0")}.json')
 
 
 def debug():

@@ -38,7 +38,7 @@ def make_checkpoint(checkpoints0:list, checkpoints1:list, embeddings_path='../GN
 
     ctgns_1 = [SolutionNet(atom_fea_len, nbr_fea_len,
                             embeddings=embeddings, h_fea_len=128, n_conv=n_conv,
-                            n_fc=2, n_gt=n_gt, module=module, norm=True, drop=0) for _ in range(n_ensembles[1])]
+                            n_fc=n_fc, n_gt=n_gt, module=module, norm=True, drop=0) for _ in range(n_ensembles[1])]
 
     for i in range(n_ensembles[1]):
         ctgns_1[i].load_state_dict(ckpt_1[i]['state_dict'], strict=True)
