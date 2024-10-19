@@ -194,4 +194,4 @@ if __name__ == '__main__':
         'predictions': torch.tensor(predictions).cpu(),
         'targets': torch.tensor(test_outs).cpu()
     }
-    trainer.save_state_dict(f'../../ai4ps_logs/checkpoints/{name}_{args.remarks}_seed_{args.seed}_fold_{args.fold}_checkpoint.pt', loss, targets_p_t)
+    trainer.save_state_dict(f'/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/{name}_{args.remarks}_seed_{args.seed}_fold_{fold}_checkpoint.pt', loss, targets_p_t)
