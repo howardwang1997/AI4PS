@@ -13,16 +13,20 @@ from rdkit import Chem
 from molecule_generation import load_model_from_directory
 
 from trainer import BayesianPredictor
+from autoencoder import Autoencoder
 
 CODE_PATH = up(up(os.path.abspath(__file__)))
-DIMENSION = 512
+DIMENSION = 50
 MODEL_DIR = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
 MODEL = load_model_from_directory(MODEL_DIR)
 SOLVENT = 'O'
-
+AUTOENCODER_PATH = '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/autoencoder_03.pt'
+AUTOENCODER = Autoencoder()
+AUTOENCODER.load_state_dict(torch.load(AUTOENCODER_PATH, map_location=torch.device('cpu')))
+AUTOENCODER.eval()
 
 def _make_parameters(scaffolds, dimension=DIMENSION):
-    parameters = {i: [-2.0, 2.0] for i in range(dimension)}
+    parameters = {i: [0.0, 1.0] for i in range(dimension)}
     # parameters['scaffolds': scaffolds]
 
     parameter_list = [
@@ -81,6 +85,8 @@ def parameters_to_embeddings(parameters, dimension=DIMENSION):
 
 def generate(parameters):
     embeddings_bias, scaffold = parameters_to_embeddings(parameters)
+    embeddings_bias = torch.tensor(embeddings_bias, dtype=torch.float32)
+    embeddings_bias = AUTOENCODER.decode(embeddings_bias).detach().numpy()
     # model_dir = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
     example_smiles = [scaffold]
     scaffolds = [scaffold]
@@ -90,10 +96,12 @@ def generate(parameters):
         noise = np.random.normal(0, 0.2, (len(scaffolds), DIMENSION))
         noise = noise.astype(embeddings[0].dtype)
         embeddings_bias = embeddings_bias.astype(embeddings[0].dtype)
-        noise_embedding = embeddings[0] + noise + embeddings_bias
+        noise_embedding = embeddings[0] + embeddings_bias # + noise
+        noise_embedding = noise_embedding.reshape(1, -1)
         # print(noise_embedding.shape)
 
         # The i-th scaffold will be used when decoding the i-th latent vector.
+        # print(noise_embedding.shape, scaffolds)
         decoded_scaffolds = model.decode(noise_embedding, scaffolds=scaffolds)
     return decoded_scaffolds
 
@@ -165,35 +173,37 @@ def main():
     parameter_list = _make_parameters(_make_scaffolds())
     objectives = _make_objectives()
     checkpoints0 = [
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_32_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_42_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_52_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_5f_rg_rmo3_ens0_seed_62_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
     ]
     checkpoints1 = [
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_0_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_1_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_2_checkpoint.pt',
-        '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_rg_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
     ]
     predictor = _get_predictor(checkpoints0, checkpoints1)
     experiment = screen(parameter_list=parameter_list,
                         objectives=objectives,
                         predictor=predictor,
-                        iterations=1000,
+                        iterations=600,
                         plot=True)
     client, results, frontier = experiment
     # save
     """
     NEED IMPLEMENTATION
     """
-    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_03.json', 'w') as f:
+    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_33.json', 'w') as f:
         json.dump(results, f)
     print(frontier)
     # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
     #     json.dump(frontier, f)
-    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_03.pt')
-    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_03.json')
+    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_33.pt')
+    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_33.json')
 
 
 def debug():
