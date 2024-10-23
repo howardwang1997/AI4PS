@@ -49,18 +49,18 @@ def generated_to_bayesian(generate_list):
 
     if is_smiles_list:
         checkpoints0 = [
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_0_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_1_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_2_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_3_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/soqy_final_rg_ens_4_seed_42_fold_0_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
         ]
         checkpoints1 = [
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_0_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_1_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_2_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_3_seed_42_fold_0_checkpoint.pt',
-            '/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/checkpoints/abs_final_rg_ens_4_seed_42_fold_0_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
         ]
         predictor = _get_predictor(checkpoints0[0], checkpoints1[0])
 
