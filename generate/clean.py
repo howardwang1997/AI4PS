@@ -24,6 +24,7 @@ def check_smiles_list(molecules):
 def remove_duplicates(original, new):
     is_smiles_list = check_smiles_list(new)
     # print(original[0])
+    start_data = len(new)
 
     original = [Chem.MolToSmiles(Chem.MolFromSmiles(s[1])) for s in original]
 
@@ -37,7 +38,7 @@ def remove_duplicates(original, new):
         if st_n not in original:
             removed.append(n)
 
-    print(f'Removed {len(original) - len(removed)} duplicates from {len(original)} to {len(removed)}.')
+    print(f'Removed {start_data - len(removed)} duplicates from {start_data} to {len(removed)}.')
     return removed
 
 
