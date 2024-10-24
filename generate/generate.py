@@ -50,12 +50,12 @@ def main():
 
     # decoded = list(set(decoded_hypocrellin + decoded_6 + decoded_porphyrin + decoded_bodipy))
     decoded = []
-    for noise_std in [0.3,0.5,0.7,0.9,1.1]:
+    for noise_std in [0.5,0.7,0.9]:
         for s in scaffolds:
-            decoded = decoded + generate(scaffolds=[s], rep=500, noise_std=noise_std)
+            decoded = decoded + generate(scaffolds=[s], rep=100, noise_std=noise_std)
     decoded = list(set(decoded))
     print(f'done, {len(decoded)} decoded, time: {time.time() - st}')
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_07.json', 'w') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/decoded_09.json', 'w') as f:
         json.dump(decoded, f)
 
 if __name__ == '__main__':
