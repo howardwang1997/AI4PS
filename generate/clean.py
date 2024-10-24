@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from os.path import dirname as up
+from tqdm import tqdm
 
 from rdkit import Chem
 from rdkit.Chem.Crippen import MolLogP
@@ -62,17 +63,17 @@ def generated_to_bayesian(generate_list):
         '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
         '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
         ]
-        predictor = _get_predictor(checkpoints0[0], checkpoints1[0])
+        predictor = _get_predictor(checkpoints0, checkpoints1)
 
     predicted = []
-    for data in generate_list:
+    for data in tqdm(generate_list):
         add_data = {}
         if is_smiles_list:
             m = data
             pred = predictor.predict([[data, 'O']])
-            soqy, absorption = pred[0].item(), pred[1].item()
-            add_data['max_absorption'] = absorption
-            add_data['phi_singlet_oxygen'] = soqy
+            # soqy, absorption = pred[0].item(), pred[1].item()
+            add_data['max_absorption'] = [pred['abs_mean'].item(), pred['abs_std'].item()]
+            add_data['phi_singlet_oxygen'] = [pred['soqy_mean'].item(), pred['soqy_std'].item()]
         else:
             m = data['decoded_molecule']
             add_data['max_absorption'] = data['max_absorption']
