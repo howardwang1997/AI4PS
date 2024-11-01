@@ -46,17 +46,19 @@ def bayesian_to_generated(bayesian_list):
     return [n['decoded_molecule'] for n in bayesian_list]
 
 
-def generated_to_bayesian(generate_list):
+def generated_to_bayesian(generate_list, ckeckpoint_template=None):
     is_smiles_list = check_smiles_list(generate_list)
 
     if is_smiles_list:
         checkpoints0 = [
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_0_seed_52_fold_0_checkpoint.pt',
+        # '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_0_checkpoint.pt',
+        # '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_0_checkpoint.pt',
+        # '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_0_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_0_checkpoint.pt',
         ]
+        if ckeckpoint_template:
+            checkpoints0 = [ckeckpoint_template.replace('_ens_0_', f'_ens_{i}_') for i in range(5)]
         checkpoints1 = [
         '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
         '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
@@ -98,6 +100,7 @@ def main():
     parser.add_argument('--file', type=str)
     parser.add_argument('--save', type=str)
     parser.add_argument('--original', type=str, required=False, default=False)
+    parser.add_argument('--checkpoint', type=str)
     args = parser.parse_args()
 
     if args.original:
@@ -117,7 +120,7 @@ def main():
     if args.to_smiles:
         new = bayesian_to_generated(files_data)
     if args.predict:
-        new = generated_to_bayesian(files_data)
+        new = generated_to_bayesian(files_data, args.checkpoint)
     elif args.clean:
         new = remove_duplicates(original_data, files_data)
 
