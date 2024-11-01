@@ -1,2 +1,12 @@
-python3 main.py --fold 1 --epochs 1000 --seed 42 --gpu 0 --remarks ens_0
-python3 abs.py --fold 1 --epochs 500 --seed 42 --gpu 0 --remarks ens_0
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 4
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 10
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 16
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 4
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 10
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 16
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 4
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 10
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 16
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 4
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 10
+python3 finetune.py --checkpoint /mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt --fold 3 --seed 52 --epoch 16
