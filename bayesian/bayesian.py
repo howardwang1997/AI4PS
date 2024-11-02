@@ -9,6 +9,7 @@ from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
+import plotly.io as pio
 from rdkit import Chem
 from molecule_generation import load_model_from_directory
 
@@ -124,8 +125,9 @@ def evaluate(parameters, predictor):
     return results
 
 
-def plot_frontier(frontier):
-    pass
+def plot_frontier(frontier, path):
+    plot_config = plot_pareto_frontier(frontier)
+    pio.write_image(plot_config.data, path)
 
 
 def save_experiment_and_frontier(experiment, frontier, path='pareto_frontier.json', manual=False, components=None):
@@ -205,8 +207,8 @@ def screen(parameter_list: list,
         num_points=num_point,
     )
 
-    if plot:
-        plot_frontier(frontier)
+    # if plot:
+    #     plot_frontier(frontier)
 
     return ax_client, eval_results, frontier
 
@@ -230,7 +232,6 @@ def manual_screen(generations: list,
         overwrite_existing_experiment=True,
         is_test=True,
     )
-    eval_results = []
 
     trial_index = 0
     # manually screen photosensitizer and solvent
@@ -260,8 +261,9 @@ def manual_screen(generations: list,
 
     if plot:
         save_experiment_and_frontier(ax_client.experiment, frontier, manual=True, generations=generations, path='/mlx_devbox/users/howard.wang/playground/molllm/datasets/pareto_frontier.json')
+        # plot_frontier(frontier)
 
-    return ax_client.experiment
+    return ax_client, frontier
 
 
 def main():
@@ -313,5 +315,14 @@ def debug():
         print(k, len(v), type(v), v[0])
 
 
+def manual():
+    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_30_33_fold0_01.json') as f:
+        generations = json.load(f)
+    objectives = _make_objectives()
+    experiment = manual_screen(generations, objectives, plot=False, num_point=500)
+    client, frontier = experiment
+    plot_frontier(frontier, '/mlx_devbox/users/howard.wang/playground/molllm/imgs/bayesian_frontier_3033_01.png')
+    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_30_33_fold0.pt')
+
 if __name__ == '__main__':
-    main()
+    manual()
