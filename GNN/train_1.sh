@@ -1,0 +1,13 @@
+python3 main.py --fold 2 --epochs 500 --seed 72 --gpu 1 --remarks ens_0
+python3 main.py --fold 2 --epochs 500 --seed 72 --gpu 1 --remarks ens_1
+python3 main.py --fold 2 --epochs 500 --seed 72 --gpu 1 --remarks ens_2
+python3 main.py --fold 2 --epochs 500 --seed 72 --gpu 1 --remarks ens_3
+python3 main.py --fold 2 --epochs 500 --seed 72 --gpu 1 --remarks ens_4
+python3 main.py --fold 3 --epochs 500 --seed 72 --gpu 1 --remarks ens_0
+python3 main.py --fold 3 --epochs 500 --seed 72 --gpu 1 --remarks ens_1
+python3 main.py --fold 3 --epochs 500 --seed 72 --gpu 1 --remarks ens_2
+python3 main.py --fold 3 --epochs 500 --seed 72 --gpu 1 --remarks ens_3
+python3 main.py --fold 3 --epochs 500 --seed 72 --gpu 1 --remarks ens_4
+python3 main.py --fold 4 --epochs 500 --seed 72 --gpu 1 --remarks ens_2
+python3 main.py --fold 4 --epochs 500 --seed 72 --gpu 1 --remarks ens_3
+python3 main.py --fold 4 --epochs 500 --seed 72 --gpu 1 --remarks ens_4

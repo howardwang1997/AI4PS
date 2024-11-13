@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from rdkit import Chem
 
     # for debug
-    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_5_index_rmo3.json') as f:
+    with open('/mlx_devbox/users/howard.wang/playground/molllm/datasets/dataset_close_9_index_dmf_dmso.json') as f:
         d = json.load(f)
     data = d['absorption']
     all_data = []
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     from gnn_utils import dataset_converter, split
 
     classification = False
-    name = 'abs_final_rg'
+    name = 'abs_final_dmf'
     train_set, val_set = split(data, seed=args.seed, fold=args.fold, val_ratio=0.15)
 
     # hyperparameters
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             epochs = 500
             grad_accum = 8
     grad_accum = 1
-    epochs = 500
+    epochs = 200
 
     milestone2 = 99999
     if args.milestone1 > 0:
