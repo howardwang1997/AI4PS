@@ -131,7 +131,7 @@ if __name__ == '__main__':
             epochs = 500
             grad_accum = 8
     grad_accum = 1
-    epochs = 200
+    epochs = 400
 
     milestone2 = 99999
     if args.milestone1 > 0:
