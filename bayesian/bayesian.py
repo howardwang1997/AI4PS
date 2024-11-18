@@ -19,7 +19,7 @@ CODE_PATH = up(up(os.path.abspath(__file__)))
 DIMENSION = 50
 MODEL_DIR = "/mlx_devbox/users/howard.wang/playground/molllm/moler_weights"
 MODEL = load_model_from_directory(MODEL_DIR)
-SOLVENT = 'O'
+SOLVENT = 'CN(C)C=O'
 AUTOENCODER_PATH = '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/autoencoder_03.pt'
 AUTOENCODER = Autoencoder()
 AUTOENCODER.load_state_dict(torch.load(AUTOENCODER_PATH, map_location=torch.device('cpu')))
@@ -68,7 +68,7 @@ def _get_photosensitizers(smiles_path=os.path.join(CODE_PATH, 'data', 'decoded_a
 
 
 def _get_solvents(smiles_path=os.path.join(CODE_PATH, 'data', 'solvents_all.json')):
-    return ["O"]
+    return ["CN(C)C=O"]
 
 
 def _get_predictor(checkpoint0, checkpoint1):
@@ -115,7 +115,11 @@ def evaluate(parameters, predictor):
     decoded_scaffolds = generate(parameters)
     parameters_conversion = [[decoded_scaffolds[0], SOLVENT]]
 
-    pred = predictor.predict(parameters_conversion)
+    try:
+        pred = predictor.predict(parameters_conversion)
+    except RuntimeError:
+        print('RDKIT ERROR')
+        pred = {'soqy_mean': torch.tensor(0.0), 'soqy_std': torch.tensor(0.0), 'abs_mean': torch.tensor(0.0), 'abs_std': torch.tensor(0.0)}
     soqy, absorption = pred['soqy_mean'].item(), pred['abs_mean'].item()
     loss_soqy = pred['soqy_std'].item()
     loss_absorption = pred['abs_std'].item()
@@ -133,7 +137,7 @@ def screen(parameter_list: list,
            predictor: BayesianPredictor,
            iterations: int = 100,
            plot: bool = False,
-           num_point: int = 20):
+           num_point: int = 100):
     ax_client = AxClient()
     ax_client.create_experiment(
         name="screen_photosensitizer_solution",
@@ -173,37 +177,37 @@ def main():
     parameter_list = _make_parameters(_make_scaffolds())
     objectives = _make_objectives()
     checkpoints0 = [
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_dmf_ens_0_seed_72_fold_4_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_dmf_ens_1_seed_72_fold_4_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_dmf_ens_2_seed_72_fold_4_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_dmf_ens_3_seed_72_fold_4_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/soqy_final_dmf_ens_4_seed_72_fold_4_checkpoint.pt',
     ]
     checkpoints1 = [
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_0_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_1_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_2_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_3_seed_52_fold_3_checkpoint.pt',
-        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_rg_ens_4_seed_52_fold_3_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_dmf_ens_0_seed_72_fold_1_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_dmf_ens_1_seed_72_fold_1_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_dmf_ens_2_seed_72_fold_1_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_dmf_ens_3_seed_72_fold_1_checkpoint.pt',
+        '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/checkpoints/abs_final_dmf_ens_4_seed_72_fold_1_checkpoint.pt',
     ]
     predictor = _get_predictor(checkpoints0, checkpoints1)
     experiment = screen(parameter_list=parameter_list,
                         objectives=objectives,
                         predictor=predictor,
-                        iterations=600,
+                        iterations=1000,
                         plot=True)
     client, results, frontier = experiment
     # save
     """
     NEED IMPLEMENTATION
     """
-    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_33.json', 'w') as f:
+    with open('/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_generated_37.json', 'w') as f:
         json.dump(results, f)
-    print(frontier)
+    # print(frontier)
     # with open('/mlx_devbox/users/howard.wang/playground/molllm/ai4ps_logs/data/bayesian_frontier_02.json', 'w') as f:
     #     json.dump(frontier, f)
-    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_33.pt')
-    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_33.json')
+    torch.save(frontier, '/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_frontier_37.pt')
+    client.save_to_json_file(filepath='/mnt/bn/ai4s-hl/bamboo/hongyi/debug/moler/data/bayesian_client_37.json')
 
 
 def debug():
